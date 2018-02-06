@@ -1,3 +1,5 @@
+import argparse
+
 import matplotlib.pyplot as plt
 import random
 
@@ -9,6 +11,11 @@ def generate_random_chart_color():
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--type', nargs='+', type=str, help='the factorizer type to be included into the plot')
+    args = parser.parse_args()
+    if args.type is None:
+        args.type = ['brute_force']
     persistance = sqlite_persistance()
     stats = persistance.retrieve_statistics()
     for (_, stat) in enumerate(stats):
