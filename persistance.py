@@ -15,7 +15,7 @@ class sqlite_persistance:
 
     def save_statistics(self, results, method):
         c = self.conn.cursor()
-        c.executemany("INSERT INTO statistics VALUES (?, ?, ?)", [(method, key, item) for key, value in results.items() for item in value])
+        c.executemany("INSERT INTO statistics VALUES (?, ?, ?)", [(method, key if key is not None else -1, item) for key, value in results.items() for item in value])
         self.conn.commit()
         c.close()
 
