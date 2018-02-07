@@ -19,11 +19,9 @@ class sqlite_persistance:
         self.conn.commit()
         c.close()
 
-    def retrieve_statistics(self):
+    def retrieve_statistics(self, method_names):
         c = self.conn.cursor()
-        c.execute("SELECT method FROM statistics GROUP BY method")
-        method_names = c.fetchall()
-        stats = [(self.stat_from_method(method[0], c), method[0]) for method in method_names]
+        stats = [self.stat_from_method(method, c) for method in method_names]
         c.close()
         return stats
 
