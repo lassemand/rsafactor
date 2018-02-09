@@ -22,3 +22,4 @@ class rsa_pollard_rho(implements(rsa_factorizer)):
             if p == self.n:
                 return self.factorize(f)
         return p, int(self.n / p)
+

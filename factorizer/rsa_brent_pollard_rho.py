@@ -11,27 +11,31 @@ class rsa_brent_pollard_rho(implements(rsa_factorizer)):
         self.n = n
         self.e = e
 
-    def factorize(self):
+    def factorize(self, f = lambda u: u ** 2 + 1):
         y, c, m = random.randint(1, self.n - 1), random.randint(1, self.n - 1), random.randint(1, self.n - 1)
-        g, r, q = 1, 1, 1
-        while g == 1:
+        p, r, q = 1, 1, 1
+        while p == 1:
             x = y
             for i in range(r):
-                y = ((y * y) % self.n + c) % self.n
+                y = f(y) % self.n
             k = 0
-            while k < r and g == 1:
+            while k < r and p == 1:
                 ys = y
                 for i in range(min(m, r - k)):
-                    y = ((y * y) % self.n + c) % self.n
+                    y = f(y) % self.n
                     q = q * (abs(x - y)) % self.n
-                g = math.gcd(q, self.n)
+                p = math.gcd(q, self.n)
                 k = k + m
             r *= 2
-        if g == self.n:
+        if p == self.n:
             while True:
-                ys = ((ys * ys) % self.n + c) % self.n
-                g = math.gcd(abs(x - ys), self.n)
-                if g > 1:
+                ys = f(ys) % self.n
+                p = math.gcd(abs(x - ys), self.n)
+                if p > 1:
                     break
 
-        return g, int(self.n/g)
+        return p, int(self.n / p)
+
+if __name__ == "__main__":
+    factorizer =  rsa_brent_pollard_rho(21)
+    factorizer.factorize()
