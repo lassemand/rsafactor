@@ -9,7 +9,6 @@ from helper.miller_rabin import miller_rabin
 
 
 def find_all_pair_of_size(n, d):
-
     pointers = [i for i in reversed(range(d))]
     return generate_all_pairs(pointers, n, 0, [list(pointers)])
 
@@ -32,6 +31,33 @@ def generate_all_pairs(pointers, n, i, all_pairs):
     return generate_all_pairs(pointers, n, 0, all_pairs)
 
 
+def find_exponent(number, prime, value, n):
+    return find_exponent(number, prime, value + 1, n) if number % (prime ** value) == 0 else value-1
+
+
+def factorize_numbers_from_primes(numbers, primes, n):
+    all_rows = []
+    for (index, number) in enumerate(numbers):
+        # We know that even numbers are supposed to be close n wheres even numbers are close to 0.
+        factorized_numbers_row = [0 for i in range(len(primes) + 1)]
+        if index & 1 == 0:
+           number = (number * -1) % n
+           factorized_numbers_row[0] = 1
+
+        factorized_numbers_row = factorized_numbers_row + []
+        current_factor_value = 1
+        for (index, prime) in enumerate(primes):
+            exponent = find_exponent(number, prime, 1, n)
+            if exponent != 0:
+                factorized_numbers_row[index+1] = exponent & 1 if number % prime == 0 else 0
+                current_factor_value = current_factor_value * (prime ** exponent)
+                if current_factor_value == number:
+                    all_rows.append(factorized_numbers_row)
+                    break
+
+    return np.matrix(all_rows)
+
+
 def find_set_to_reach_zero_sum_vector_from_candidates(matrix, candidates):
     for i in reversed(range(matrix.shape[1])):
         new_candidates = []
@@ -49,14 +75,12 @@ class rsa_dixon_random_squares(implements(rsa_factorizer)):
 
     def factorize(self):
         k = math.exp(math.sqrt(math.log1p(self.n) * math.log1p(math.log1p(self.n))))
-        B = [-1]
-        Z = [math.floor(math.sqrt(i/2 * self.n)) if i & 1 else math.ceil(math.sqrt(i * self.n)) for i in range(1, k+1)]
-        matrix = []
-        for i in range(2, k):
-            if miller_rabin(i):
-                if self.n % i == 0:
-                    return i, self.n / i
-                B.append(i)
-        for i in range(len(B)):
-            z = Z[i]^2 % self.n
+        B = [b for b in range(2, int(k)) if miller_rabin(b)]
+        Z = [int(math.floor(math.sqrt((i + 1) / 2 * self.n))) if i & 1 else int(math.ceil(math.sqrt(i / 2 * self.n)))
+             for i in range(1, int(len(B) + 1))]
+        matrix = factorize_numbers_from_primes([z ^ 2 % self.n for z in Z], B, self.n)
+        for d in range(3, matrix.shape[1]):
+            factorize_candidates = find_set_to_reach_zero_sum_vector_from_candidates(matrix, find_all_pair_of_size(
+                matrix.shape[0], d))
+
         return 59, 31
