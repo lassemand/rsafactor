@@ -15,9 +15,7 @@ class TestFactorizer(unittest.TestCase):
         sut = rsa_brute_force(pubkey.n, pubkey.e)
         (p, q) = sut.factorize()
         if p == privkey.q:
-            temp = p
-            p = q
-            q = temp
+            p, q = q, p
         self.assertEqual(p, privkey.p)
         self.assertEqual(q, privkey.q)
 
@@ -26,9 +24,7 @@ class TestFactorizer(unittest.TestCase):
         sut = rsa_pollard_rho(pubkey.n, pubkey.e)
         (p, q) = sut.factorize()
         if p == privkey.q:
-            temp = p
-            p = q
-            q = temp
+            p, q = q, p
         self.assertEqual(p, privkey.p)
         self.assertEqual(q, privkey.q)
 
@@ -37,15 +33,19 @@ class TestFactorizer(unittest.TestCase):
         sut = rsa_brent_pollard_rho(pubkey.n, pubkey.e)
         (p, q) = sut.factorize()
         if p == privkey.q:
-            temp = p
-            p = q
-            q = temp
+            p, q = q, p
         self.assertEqual(p, privkey.p)
         self.assertEqual(q, privkey.q)
 
     def test_brent_pollard_rho(self):
         sut = rsa_dixon_random_squares(1829, 1)
         (p, q) = sut.factorize()
+        if p == 59:
+            temp = p
+            p = q
+            q = temp
+        self.assertEqual(p, 31)
+        self.assertEqual(q, 59)
 
     def test_all_pairs_of_given_length(self):
         result = find_all_pair_of_size(5, 3)
