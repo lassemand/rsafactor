@@ -30,20 +30,10 @@ class TestFactorizer(unittest.TestCase):
 
     def test_brent_pollard_rho(self):
         (pubkey, privkey) = rsa.newkeys(32)
-        sut = rsa_brent_pollard_rho(pubkey.n, pubkey.e)
+        sut = rsa_dixon_random_squares(pubkey.n, pubkey.e)
         (p, q) = sut.factorize()
         if p == privkey.q:
             p, q = q, p
-        self.assertEqual(p, privkey.p)
-        self.assertEqual(q, privkey.q)
-
-    def test_brent_pollard_rho(self):
-        sut = rsa_dixon_random_squares(1829, 1)
-        (p, q) = sut.factorize()
-        if p == 59:
-            temp = p
-            p = q
-            q = temp
         self.assertEqual(p, 31)
         self.assertEqual(q, 59)
 
@@ -51,9 +41,10 @@ class TestFactorizer(unittest.TestCase):
         result = find_all_pair_of_size(5, 3)
         self.assertEqual(len(result), 10)
 
-    def test_all_pairs_of_given_length(self):
-        result = factorize_numbers_from_primes([1764, 20], [2, 3, 5, 7, 11, 13], 1829)
-        self.assertTrue(np.alltrue(result == np.matrix([[1, 0, 0, 1, 0, 0, 1], [0, 0, 0, 1, 0, 0, 0]])))
+    def test_factorize_number_from_prrimes(self):
+        (result, _, none_binary_result) = factorize_numbers_from_primes([1764, 20], [2, 3, 5, 7, 11, 13], 1829)
+        self.assertTrue(np.alltrue(result == np.matrix([[0, 0, 1, 0, 0, 1], [0, 0, 1, 0, 0, 0]])))
+        self.assertTrue(np.alltrue(none_binary_result == np.matrix([[0, 0, 1, 0, 0, 1], [2, 0, 1, 0, 0, 0]])))
 
     def test_zero_sum_vector_candidates(self):
         matrix = np.matrix([[1, 0, 0, 1, 0, 0, 1], [0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 1, 0, 0], [1, 0, 0, 0, 0, 1, 0],

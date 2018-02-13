@@ -32,30 +32,40 @@ def generate_all_pairs(pointers, n, i, all_pairs):
 
 
 def find_exponent(number, prime, value, n):
-    return find_exponent(number, prime, value + 1, n) if number % (prime ** value) == 0 else value-1
+    return find_exponent(number, prime, value + 1, n) if number % (prime ** value) == 0 else value - 1
+
+
+def factorize_number_from_primes(number, primes, n):
+    factorized_number_binary_row = [0] * (len(primes))
+    factorized_number_row = [0] * (len(primes))
+    list_of_factors = []
+    current_factor_value = 1
+    for (index, prime) in enumerate(primes):
+        exponent = find_exponent(number, prime, 1, n)
+        factorized_number_row[index] = exponent
+        if exponent != 0:
+            list_of_factors.append(number ** exponent)
+            factorized_number_binary_row[index] = exponent & 1 if number % prime == 0 else 0
+            current_factor_value = current_factor_value * (prime ** exponent)
+            if current_factor_value == number:
+                return factorized_number_binary_row, factorized_number_row
+    return None, None
 
 
 def factorize_numbers_from_primes(numbers, primes, n):
-    all_rows = []
+    all_rows_in_binary_factor = []
+    all_rows_in_factor = []
+    all_indicies_with_factor = []
     for (index, number) in enumerate(numbers):
         # We know that even numbers are supposed to be close n wheres even numbers are close to 0.
-        factorized_numbers_row = [0 for i in range(len(primes) + 1)]
         if index & 1 == 0:
-           number = (number * -1) % n
-           factorized_numbers_row[0] = 1
-
-        factorized_numbers_row = factorized_numbers_row + []
-        current_factor_value = 1
-        for (index, prime) in enumerate(primes):
-            exponent = find_exponent(number, prime, 1, n)
-            if exponent != 0:
-                factorized_numbers_row[index+1] = exponent & 1 if number % prime == 0 else 0
-                current_factor_value = current_factor_value * (prime ** exponent)
-                if current_factor_value == number:
-                    all_rows.append(factorized_numbers_row)
-                    break
-
-    return np.matrix(all_rows)
+            number = (number * -1) % n
+        factorized_binary_number_row, factorized_number_row = factorize_number_from_primes(number, primes, n)
+        if factorized_binary_number_row is not None:
+            all_rows_in_binary_factor.append(factorized_binary_number_row)
+            all_rows_in_factor.append(factorized_number_row)
+            all_indicies_with_factor.append(index)
+    return np.matrix(all_rows_in_binary_factor), all_indicies_with_factor, np.array(all_rows_in_factor)
 
 
 def find_set_to_reach_zero_sum_vector_from_candidates(matrix, candidates):
@@ -75,12 +85,21 @@ class rsa_dixon_random_squares(implements(rsa_factorizer)):
 
     def factorize(self):
         k = math.exp(math.sqrt(math.log1p(self.n) * math.log1p(math.log1p(self.n))))
-        B = [b for b in range(2, int(k)) if miller_rabin(b)]
-        Z = [int(math.floor(math.sqrt((i + 1) / 2 * self.n))) if i & 1 else int(math.ceil(math.sqrt(i / 2 * self.n)))
-             for i in range(1, int(len(B) + 1))]
-        matrix = factorize_numbers_from_primes([z ^ 2 % self.n for z in Z], B, self.n)
-        for d in range(3, matrix.shape[1]):
-            factorize_candidates = find_set_to_reach_zero_sum_vector_from_candidates(matrix, find_all_pair_of_size(
-                matrix.shape[0], d))
-
+        B = np.array([b for b in range(2, int(k)) if miller_rabin(b)])
+        Z = np.array([int(
+            math.floor(math.sqrt((((i + 1) / 2) * self.n))) if i & 1 else int(math.ceil(math.sqrt((i / 2) * self.n))))
+            for i in range(1, int(len(B) + 1))])
+        binary_matrix, indicies, exponent_matrix = factorize_numbers_from_primes([z ** 2 % self.n for z in Z], B, self.n)
+        Z = Z[indicies]
+        for d in range(2, binary_matrix.shape[1]):
+            factorize_candidates = find_set_to_reach_zero_sum_vector_from_candidates(binary_matrix, find_all_pair_of_size(
+                binary_matrix.shape[0], d))
+            for fac_cand in factorize_candidates:
+                z_congruence = np.prod(Z[fac_cand])
+                y_values = B ** (np.sum(exponent_matrix[fac_cand,:], axis=0) / 2)
+                y_congruence = int(np.prod(y_values))
+                p = math.gcd(z_congruence + y_congruence, self.n)
+                if p != 1 and p != self.n:
+                    return p, int(self.n / p)
+        # TODO refactorize with a more random j
         return 59, 31
