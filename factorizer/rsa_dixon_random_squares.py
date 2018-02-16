@@ -5,7 +5,7 @@ import numpy as np
 from interface import implements
 
 from factorizer.rsa_factorizer import rsa_factorizer
-from helper.miller_rabin import miller_rabin
+from helper.primes_sieve import primes_sieve
 
 
 def find_all_pair_of_size(n, d):
@@ -14,21 +14,18 @@ def find_all_pair_of_size(n, d):
 
 
 def generate_all_pairs(pointers, n, i, all_pairs):
-    is_all_pairs_generated = i == len(pointers)
-    if is_all_pairs_generated:
-        return all_pairs
-
-    is_in_the_begining_and_should_update = i == 0 and pointers[i] == n - 1
-    is_not_in_the_begining_and_should_update = pointers[i - 1] == pointers[i] + 1
-    if is_in_the_begining_and_should_update or is_not_in_the_begining_and_should_update:
-        return generate_all_pairs(pointers, n, i + 1, all_pairs)
-
-    pointers[i] += 1
-    for index in reversed(range(i)):
-        pointers[index] = pointers[index + 1] + 1
-    all_pairs.append(list(pointers))
-
-    return generate_all_pairs(pointers, n, 0, all_pairs)
+    while i != len(pointers):
+        is_in_the_begining_and_should_update = i == 0 and pointers[i] == n - 1
+        is_not_in_the_begining_and_should_update = pointers[i - 1] == pointers[i] + 1
+        if is_in_the_begining_and_should_update or is_not_in_the_begining_and_should_update:
+            i += 1
+            continue
+        pointers[i] += 1
+        for index in reversed(range(i)):
+            pointers[index] = pointers[index + 1] + 1
+        all_pairs.append(list(pointers))
+        i = 0
+    return all_pairs
 
 
 def find_exponent(number, prime, value, n):
@@ -52,27 +49,13 @@ def factorize_number_from_primes(number, primes, n):
     return None, None
 
 
-def factorize_numbers_from_primes(numbers, primes, n):
-    all_rows_in_binary_factor = []
-    all_rows_in_factor = []
-    all_indicies_with_factor = []
-    for (index, number) in enumerate(numbers):
-        # We know that even numbers are supposed to be close n wheres even numbers are close to 0.
-        if index & 1 == 0:
-            number = (number * -1) % n
-        factorized_binary_number_row, factorized_number_row = factorize_number_from_primes(number, primes, n)
-        if factorized_binary_number_row is not None:
-            all_rows_in_binary_factor.append(factorized_binary_number_row)
-            all_rows_in_factor.append(factorized_number_row)
-            all_indicies_with_factor.append(index)
-    return np.matrix(all_rows_in_binary_factor), all_indicies_with_factor, np.array(all_rows_in_factor)
-
-
 def find_set_to_reach_zero_sum_vector_from_candidates(matrix, candidates):
     for i in reversed(range(matrix.shape[1])):
         new_candidates = []
+        current_row = matrix[:, i]
+        print(i)
         for cand in candidates:
-            if np.sum(matrix[:, i][cand, :]) & 1 == 0:
+            if np.sum(current_row[cand, :]) & 1 == 0:
                 new_candidates.append(cand)
         candidates = list(new_candidates)
     return candidates
@@ -83,23 +66,48 @@ class rsa_dixon_random_squares(implements(rsa_factorizer)):
         self.n = n
         self.e = e
 
-    def factorize(self):
-        k = math.exp(math.sqrt(math.log1p(self.n) * math.log1p(math.log1p(self.n))))
-        B = np.array([b for b in range(2, int(k)) if miller_rabin(b)])
-        Z = np.array([int(
-            math.floor(math.sqrt((((i + 1) / 2) * self.n))) if i & 1 else int(math.ceil(math.sqrt((i / 2) * self.n))))
-            for i in range(1, int(len(B) + 1))])
-        binary_matrix, indicies, exponent_matrix = factorize_numbers_from_primes([z ** 2 % self.n for z in Z], B, self.n)
-        Z = Z[indicies]
-        for d in range(2, binary_matrix.shape[1]):
-            factorize_candidates = find_set_to_reach_zero_sum_vector_from_candidates(binary_matrix, find_all_pair_of_size(
-                binary_matrix.shape[0], d))
+    def dixon(self, B, c=0):
+        j = 0
+        i = 0
+        Z = np.array([None] * (len(B) + 4))
+        all_rows_in_binary_factor = [None] * (len(B) + 4)
+        all_rows_in_factor = [None] * (len(B) + 4)
+        while i < len(B) + 4:
+            j = j + 1
+            if j & 1:
+                Z[i] = math.floor(math.sqrt(((j+1)/2)*self.n)) - c
+                should_negate_z_value = [1]
+            else:
+                Z[i] = math.ceil(math.sqrt((j/2)*self.n)) + c
+                should_negate_z_value = [0]
+            number = Z[i] ** 2 % self.n
+            if should_negate_z_value[0]:
+                number = (number * -1) % self.n
+            factorized_binary_number_row, factorized_number_row = factorize_number_from_primes(number, B, self.n)
+            if factorized_number_row is not None:
+                all_rows_in_binary_factor[i] = should_negate_z_value + factorized_binary_number_row
+                all_rows_in_factor[i] = should_negate_z_value + factorized_number_row
+                i = i + 1
+        all_rows_in_binary_factor, all_rows_in_factor = np.matrix(all_rows_in_binary_factor), np.array(all_rows_in_factor)
+        for d in range(2, all_rows_in_binary_factor.shape[1]):
+            factorize_candidates = find_set_to_reach_zero_sum_vector_from_candidates(all_rows_in_binary_factor, find_all_pair_of_size(all_rows_in_binary_factor.shape[0], d))
             for fac_cand in factorize_candidates:
                 z_congruence = np.prod(Z[fac_cand])
-                y_values = B ** (np.sum(exponent_matrix[fac_cand,:], axis=0) / 2)
+                y_values = B ** (np.sum(all_rows_in_factor[:,1:][fac_cand,:], axis=0) / 2)
                 y_congruence = int(np.prod(y_values))
                 p = math.gcd(z_congruence + y_congruence, self.n)
                 if p != 1 and p != self.n:
                     return p, int(self.n / p)
-        # TODO refactorize with a more random j
-        return 59, 31
+        return self.dixon(B, c+1)
+
+    def factorize(self):
+        k = int(math.exp(math.sqrt(math.log1p(self.n) * math.log1p(math.log1p(self.n)))))
+        B = np.array(primes_sieve(k))
+        return self.dixon(B, )
+
+
+
+
+
+
+
