@@ -9,11 +9,6 @@ from helper.gaussian_elimination import reduced_row_echelon_form
 from helper.primes_sieve import primes_sieve
 
 
-def find_all_pair_of_size(n, d):
-    pointers = [i for i in reversed(range(d))]
-    return generate_all_pairs(pointers, n, 0, [list(pointers)])
-
-
 def generate_all_pairs(pointers, n, i, all_pairs):
     while i != len(pointers):
         is_in_the_begining_and_should_update = i == 0 and pointers[i] == n - 1
@@ -48,18 +43,6 @@ def factorize_number_from_primes(number, primes, n):
             if current_factor_value == number:
                 return factorized_number_binary_row, factorized_number_row
     return None, None
-
-
-def find_set_to_reach_zero_sum_vector_from_candidates(matrix, candidates):
-    for i in reversed(range(matrix.shape[1])):
-        new_candidates = []
-        current_row = matrix[:, i]
-        print(i)
-        for cand in candidates:
-            if np.sum(current_row[cand, :]) & 1 == 0:
-                new_candidates.append(cand)
-        candidates = list(new_candidates)
-    return candidates
 
 
 def find_ones(matrix, numpivots):

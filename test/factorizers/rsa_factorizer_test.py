@@ -4,8 +4,8 @@ import numpy as np
 
 from factorizer.rsa_brent_pollard_rho import rsa_brent_pollard_rho
 from factorizer.rsa_brute_force import rsa_brute_force
-from factorizer.rsa_dixon_random_squares import rsa_dixon_random_squares, find_all_pair_of_size, \
-    find_set_to_reach_zero_sum_vector_from_candidates, factorize_number_from_primes
+from factorizer.rsa_dixon_random_squares import rsa_dixon_random_squares, \
+    find_set_to_reach_zero_sum_vector_from_candidates, factorize_number_from_primes, generate_disjoint_and_intersection
 from factorizer.rsa_pollard_rho import rsa_pollard_rho
 
 
@@ -38,10 +38,6 @@ class TestFactorizer(unittest.TestCase):
         self.assertEqual(p, privkey.p)
         self.assertEqual(q, privkey.q)
 
-    def test_all_pairs_of_given_length(self):
-        result = find_all_pair_of_size(5, 3)
-        self.assertEqual(len(result), 10)
-
     def test_factorize_number_from_prrimes(self):
         (result, none_binary_result) = factorize_number_from_primes(65, [2, 3, 5, 7, 11, 13], 1829)
         self.assertTrue(np.alltrue(result == np.matrix([0, 0, 1, 0, 0, 1])))
@@ -53,9 +49,6 @@ class TestFactorizer(unittest.TestCase):
         result = find_set_to_reach_zero_sum_vector_from_candidates(matrix, find_all_pair_of_size(6, 4))
         self.assertEqual(len(result), 2)
 
-    def test_generate_disjoint_and_intersection(self):
-        result = (matrix, find_all_pair_of_size(6, 4))
-        self.assertEqual(len(result), 2)
 
 if __name__ == '__main__':
     unittest.main()

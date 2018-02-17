@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 
 from factorizer.rsa_dixon_random_squares import find_ones, generate_candidates_from_ones, generate_all_pairs, \
-    rsa_dixon_random_squares
+    rsa_dixon_random_squares, generate_disjoint_and_intersection
 
 
 class rsa_dixon_random_square_test(unittest.TestCase):
@@ -29,6 +29,13 @@ class rsa_dixon_random_square_test(unittest.TestCase):
             p, q = 31, 59
         self.assertEqual(p, 31)
         self.assertEqual(q, 59)
+
+    def test_generate_disjoint_and_intersection(self):
+        intersection, disjoint = generate_disjoint_and_intersection([3], [1,2], [0,2,3])
+        self.assertEqual(1, len(intersection))
+        self.assertEqual(2, intersection[0])
+        self.assertEqual(1, len(disjoint))
+        self.assertEqual(0, disjoint[0])
 
 if __name__ == '__main__':
     unittest.main()
