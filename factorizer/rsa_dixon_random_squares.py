@@ -5,6 +5,7 @@ import numpy as np
 from interface import implements
 
 from factorizer.rsa_factorizer import rsa_factorizer
+from helper.gaussian_elimination import reduced_row_echelon_form
 from helper.primes_sieve import primes_sieve
 
 
@@ -61,6 +62,28 @@ def find_set_to_reach_zero_sum_vector_from_candidates(matrix, candidates):
     return candidates
 
 
+def find_ones(matrix, numpivots):
+    disallowed_ones = set()
+    allowed_ones = []
+    for i in reversed(range(numpivots)):
+        result = [index for index, row in enumerate(matrix[i,:]) if row[index] and index not in disallowed_ones]
+        if len(result):
+            disallowed_ones.add(result[0])
+        else:
+            allowed_ones.append(result)
+
+
+def factor_from_reduced_matrix(matrix, numpivots, all_rows_in_factor, Z, B, n):
+    allowed_ones, disallowed_ones = find_ones(matrix, numpivots)
+    z_congruence = np.prod(Z[fac_cand])
+    y_values = B ** (np.sum(all_rows_in_factor[:,1:][fac_cand,:], axis=0) / 2)
+    y_congruence = int(np.prod(y_values))
+    p = math.gcd(z_congruence + y_congruence, n)
+    if p != 1 and p != n:
+        return p, int(n / p)
+
+
+
 class rsa_dixon_random_squares(implements(rsa_factorizer)):
     def __init__(self, n, e):
         self.n = n
@@ -88,17 +111,13 @@ class rsa_dixon_random_squares(implements(rsa_factorizer)):
                 all_rows_in_binary_factor[i] = should_negate_z_value + factorized_binary_number_row
                 all_rows_in_factor[i] = should_negate_z_value + factorized_number_row
                 i = i + 1
-        all_rows_in_binary_factor, all_rows_in_factor = np.matrix(all_rows_in_binary_factor), np.array(all_rows_in_factor)
-        for d in range(2, all_rows_in_binary_factor.shape[1]):
-            factorize_candidates = find_set_to_reach_zero_sum_vector_from_candidates(all_rows_in_binary_factor, find_all_pair_of_size(all_rows_in_binary_factor.shape[0], d))
-            for fac_cand in factorize_candidates:
-                z_congruence = np.prod(Z[fac_cand])
-                y_values = B ** (np.sum(all_rows_in_factor[:,1:][fac_cand,:], axis=0) / 2)
-                y_congruence = int(np.prod(y_values))
-                p = math.gcd(z_congruence + y_congruence, self.n)
-                if p != 1 and p != self.n:
-                    return p, int(self.n / p)
+        all_rows_in_binary_factor, all_rows_in_factor = np.array(all_rows_in_binary_factor), np.array(all_rows_in_factor)
+        matrix, numpivots = reduced_row_echelon_form(all_rows_in_binary_factor)
+        p, q = factor_from_reduced_matrix(all_rows_in_binary_factor, numpivots, all_rows_in_factor, Z, B, self.n)
+        if p is not None and q is not None:
+            return p, q
         return self.dixon(B, c+1)
+
 
     def factorize(self):
         k = int(math.exp(math.sqrt(math.log1p(self.n) * math.log1p(math.log1p(self.n)))))

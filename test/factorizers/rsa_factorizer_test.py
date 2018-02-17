@@ -36,14 +36,14 @@ class TestFactorizer(unittest.TestCase):
         self.assertEqual(p, 31)
         self.assertEqual(q, 59)
 
-#    def test_dixon_random_squares(self):
-#        (pubkey, privkey) = rsa.newkeys(32)
-#        sut = rsa_dixon_random_squares(pubkey.n, pubkey.e)
-#        (p, q) = sut.factorize()
-#        if p == privkey.q:
-#            p, q = q, p
-#        self.assertEqual(p, privkey.p)
-#        self.assertEqual(q, privkey.q)
+    def test_dixon_random_squares(self):
+        (pubkey, privkey) = rsa.newkeys(32)
+        sut = rsa_dixon_random_squares(pubkey.n, pubkey.e)
+        (p, q) = sut.factorize()
+        if p == privkey.q:
+            p, q = q, p
+        self.assertEqual(p, privkey.p)
+        self.assertEqual(q, privkey.q)
 
     def test_all_pairs_of_given_length(self):
         result = find_all_pair_of_size(5, 3)
