@@ -28,13 +28,6 @@ class TestFactorizer(unittest.TestCase):
         self.assertEqual(p, privkey.p)
         self.assertEqual(q, privkey.q)
 
-    def test_dixon_random_squares_with_book_example(self):
-        sut = rsa_dixon_random_squares(1829, 1)
-        (p, q) = sut.factorize()
-        if p == 59:
-            p, q = 31, 59
-        self.assertEqual(p, 31)
-        self.assertEqual(q, 59)
 
     def test_dixon_random_squares(self):
         (pubkey, privkey) = rsa.newkeys(32)
@@ -60,6 +53,9 @@ class TestFactorizer(unittest.TestCase):
         result = find_set_to_reach_zero_sum_vector_from_candidates(matrix, find_all_pair_of_size(6, 4))
         self.assertEqual(len(result), 2)
 
+    def test_generate_disjoint_and_intersection(self):
+        result = (matrix, find_all_pair_of_size(6, 4))
+        self.assertEqual(len(result), 2)
 
 if __name__ == '__main__':
     unittest.main()
