@@ -9,21 +9,6 @@ from helper.gaussian_elimination import reduced_row_echelon_form
 from helper.primes_sieve import primes_sieve
 
 
-def generate_all_pairs(pointers, n, i, all_pairs):
-    while i != len(pointers):
-        is_in_the_begining_and_should_update = i == 0 and pointers[i] == n - 1
-        is_not_in_the_begining_and_should_update = pointers[i - 1] == pointers[i] + 1
-        if is_in_the_begining_and_should_update or is_not_in_the_begining_and_should_update:
-            i += 1
-            continue
-        pointers[i] += 1
-        for index in reversed(range(i)):
-            pointers[index] = pointers[index + 1] + 1
-        all_pairs.append(list(pointers))
-        i = 0
-    return all_pairs
-
-
 def find_exponent(number, prime, value, n):
     return find_exponent(number, prime, value + 1, n) if number % (prime ** value) == 0 else value - 1
 
@@ -51,25 +36,7 @@ def find_ones(matrix, numpivots):
         result = [index for (index, bit) in enumerate(matrix[i, :]) if bit]
         if len(result) != 1:
             allowed_ones.append(result)
-    return allowed_ones
-
-
-def generate_all_pairs(elements, d):
-    pointers = [i for i in reversed(range(d))]
-    all_pairs = [elements[pointers]]
-    i = 0
-    while i != len(pointers):
-        is_in_the_begining_and_should_update = i == 0 and pointers[i] == len(elements) - 1
-        is_not_in_the_begining_and_should_update = pointers[i - 1] == pointers[i] + 1
-        if is_in_the_begining_and_should_update or is_not_in_the_begining_and_should_update:
-            i += 1
-            continue
-        pointers[i] += 1
-        for index in reversed(range(i)):
-            pointers[index] = pointers[index + 1] + 1
-        all_pairs.append(elements[pointers])
-        i = 0
-    return all_pairs
+    return np.array(allowed_ones)
 
 
 def generate_disjoint_and_intersection(forced_zeros_index, forced_ones_index, row_ones_index):
@@ -83,26 +50,43 @@ def generate_disjoint_and_intersection(forced_zeros_index, forced_ones_index, ro
     return ones_intersection, ones_disjoint
 
 
-def generate_candidates_from_ones(row_ones, current_index=0, forced_zeros=set(), forced_ones=set()):
-    if current_index == len(row_ones):
-        return forced_ones
-
-    ones_intersection, ones_disjoint = generate_disjoint_and_intersection(forced_zeros, forced_ones, row_ones)
-    for d in reversed(range(0, len(ones_disjoint) + len(ones_intersection), 2)):
-        pairs = generate_all_pairs(ones_disjoint, d)
-        for pair in pairs:
-            return generate_candidates_from_ones(row_ones, current_index + 1, forced_zeros, forced_ones.union(pair))
-
-
-def factor_from_reduced_matrix(matrix, numpivots, all_rows_in_factor, Z, B, n):
-    allowed_ones = find_ones(matrix, numpivots)
-    for fac_cand in generate_candidates_from_ones(allowed_ones):
-        z_congruence = np.prod(Z[fac_cand])
-        y_values = B ** (np.sum(all_rows_in_factor[:, 1:][fac_cand, :], axis=0) / 2)
+def generate_candidates_from_ones(ones, Z, all_rows_in_factor, B, n, current_index=0, forced_zeros=set(),
+                                  forced_ones=set()):
+    if current_index == len(ones):
+        z_congruence = np.prod(Z[forced_ones])
+        y_values = B ** (np.sum(all_rows_in_factor[:, 1:][forced_ones, :], axis=0) / 2)
         y_congruence = int(np.prod(y_values))
         p = math.gcd(z_congruence + y_congruence, n)
         if p != 1 and p != n:
             return p, int(n / p)
+
+    ones_intersection, ones_disjoint = generate_disjoint_and_intersection(forced_zeros, forced_ones,
+                                                                          ones[current_index])
+    row_ones = ones[current_index]
+    for d in reversed(range(0, len(ones_disjoint) + len(ones_intersection), 2)):
+        pointers = [i for i in reversed(range(d))]
+        generate_candidates_from_ones(ones, Z, all_rows_in_factor, B, n, current_index + 1, forced_zeros + row_ones[d:],
+                                      forced_ones + row_ones[:d])
+        i = 0
+        while i != len(pointers):
+            is_in_the_begining_and_should_update = i == 0 and pointers[i] == len(row_ones) - 1
+            is_not_in_the_begining_and_should_update = pointers[i - 1] == pointers[i] + 1
+            if is_in_the_begining_and_should_update or is_not_in_the_begining_and_should_update:
+                i += 1
+                continue
+            pointers[i] += 1
+            for index in reversed(range(i)):
+                pointers[index] = pointers[index + 1] + 1
+            current_selection = row_ones[pointers]
+            generate_candidates_from_ones(ones, Z, all_rows_in_factor, B, n, current_index + 1,
+                                          forced_zeros + row_ones[np.setdiff1d(row_ones, current_selection)],
+                                          forced_ones + current_selection)
+            i = 0
+
+
+def factor_from_reduced_matrix(matrix, numpivots, all_rows_in_factor, Z, B, n):
+    allowed_ones = np.array(find_ones(matrix, numpivots))
+    return generate_candidates_from_ones(allowed_ones)
 
 
 class rsa_dixon_random_squares(implements(rsa_factorizer)):
