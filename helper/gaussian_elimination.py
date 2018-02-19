@@ -13,7 +13,7 @@ def reduced_row_echelon_form(matrix):
         numpivots += 1
 
         # Eliminate rows below
-        for i in range(j + 1, matrix.shape[0]):
+        for i in range(pivotrow + 1, matrix.shape[0]):
             if matrix[i, j]:
                 matrix[i, :][j:] = matrix[i, :][j:] ^ matrix[pivotrow, :][j:]
     for i in reversed(range(numpivots)):

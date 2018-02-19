@@ -30,44 +30,30 @@ def factorize_number_from_primes(number, primes, n):
     return None, None
 
 
-def find_ones(matrix, numpivots):
-    allowed_ones = []
-    for i in reversed(range(numpivots)):
-        result = [index for (index, bit) in enumerate(matrix[i, :]) if bit]
-        if len(result) != 1:
-            allowed_ones.append(result)
-    return np.array(allowed_ones)
+class rsa_dixon_random_squares(implements(rsa_factorizer)):
+    def __init__(self, n, e):
+        self.n = n
+        self.e = e
+        k = int(math.exp(math.sqrt(math.log1p(self.n) * math.log1p(math.log1p(self.n)))))
+        self.B = np.array(primes_sieve(k))
+        self.Z = np.array([None] * (len(self.B) + 4))
+        self.all_rows_in_factor = [None] * (len(self.B) + 4)
+        self.all_rows_in_binary_factor = [None] * (len(self.B) + 4)
 
-
-def generate_disjoint_and_intersection(forced_zeros_index, forced_ones_index, row_ones_index):
-    ones_intersection = []
-    ones_disjoint = []
-    for allowed_one in row_ones_index:
-        if allowed_one in forced_ones_index:
-            ones_intersection.append(allowed_one)
-        elif allowed_one not in forced_zeros_index:
-            ones_disjoint.append(allowed_one)
-    return ones_intersection, ones_disjoint
-
-
-def generate_candidates_from_ones(ones, Z, all_rows_in_factor, B, n, current_index=0, forced_zeros=set(),
-                                  forced_ones=set()):
-    if current_index == len(ones):
-        z_congruence = np.prod(Z[forced_ones])
-        y_values = B ** (np.sum(all_rows_in_factor[:, 1:][forced_ones, :], axis=0) / 2)
-        y_congruence = int(np.prod(y_values))
+    def test_congruences(self, forced_ones, Z, all_rows_in_factor, n, B):
+        list_z_values = list(forced_ones)
+        z_congruence = np.prod(Z[list_z_values]) % n
+        y_values = B[1:] ** (np.sum(all_rows_in_factor[:, 1:][list_z_values, :], axis=0) / 2)
+        y_congruence = int(np.prod(y_values)) % n
         p = math.gcd(z_congruence + y_congruence, n)
         if p != 1 and p != n:
             return p, int(n / p)
+        return None, None
 
-    ones_intersection, ones_disjoint = generate_disjoint_and_intersection(forced_zeros, forced_ones,
-                                                                          ones[current_index])
-    row_ones = ones[current_index]
-    for d in reversed(range(0, len(ones_disjoint) + len(ones_intersection), 2)):
+    def find_factor_from_all_possibilites(self, d, row_ones, ones, Z, all_rows_in_factor, B, n, current_index,
+                                          forced_zeros,
+                                          forced_ones):
         pointers = [i for i in reversed(range(d))]
-        generate_candidates_from_ones(ones, Z, all_rows_in_factor, B, n, current_index + 1, forced_zeros + row_ones[d:],
-                                      forced_ones + row_ones[:d])
-        i = 0
         while i != len(pointers):
             is_in_the_begining_and_should_update = i == 0 and pointers[i] == len(row_ones) - 1
             is_not_in_the_begining_and_should_update = pointers[i - 1] == pointers[i] + 1
@@ -78,29 +64,38 @@ def generate_candidates_from_ones(ones, Z, all_rows_in_factor, B, n, current_ind
             for index in reversed(range(i)):
                 pointers[index] = pointers[index + 1] + 1
             current_selection = row_ones[pointers]
-            generate_candidates_from_ones(ones, Z, all_rows_in_factor, B, n, current_index + 1,
-                                          forced_zeros + row_ones[np.setdiff1d(row_ones, current_selection)],
-                                          forced_ones + current_selection)
+            p, q = self.factor_from_reduced_matrix(ones, Z, all_rows_in_factor, B, n, current_index + 1,
+                                                   forced_zeros + row_ones[np.setdiff1d(row_ones, current_selection)],
+                                                   forced_ones + current_selection)
+            if p is not None and q is not None:
+                return p, q
             i = 0
+        return None, None
 
+    def factor_from_reduced_matrix(self, ones, Z, all_rows_in_factor, B, n, current_index=0, forced_zeros=set(),
+                                   forced_ones=set()):
+        if current_index == len(ones):
+            return self.test_congruences(forced_ones, Z, all_rows_in_factor, n, B)
+        row_ones = ones[current_index]
 
-def factor_from_reduced_matrix(matrix, numpivots, all_rows_in_factor, Z, B, n):
-    allowed_ones = np.array(find_ones(matrix, numpivots))
-    return generate_candidates_from_ones(allowed_ones)
+        ones_disjoint = [one for one in row_ones if one not in forced_ones and one not in forced_zeros]
+        for d in reversed(range(0, len(ones_disjoint) + 1, 2)):
+            p, q = self.factor_from_reduced_matrix(ones, Z, all_rows_in_factor, B, n, current_index + 1,
+                                                   forced_zeros.union(set(ones_disjoint[d:])),
+                                                   forced_ones.union(set(ones_disjoint[:d])))
+            if p is not None and q is not None:
+                return p, q
+            p, q = self.find_factor_from_all_possibilites(d, row_ones, Z, all_rows_in_factor, B, n, current_index,
+                                                          forced_zeros,
+                                                          forced_ones)
+            if p is not None and q is not None:
+                return p, q
+        return None, None
 
-
-class rsa_dixon_random_squares(implements(rsa_factorizer)):
-    def __init__(self, n, e):
-        self.n = n
-        self.e = e
-
-    def dixon(self, B, c=0):
+    def dixon(self, c=0):
         j = 0
         i = 0
-        Z = np.array([None] * (len(B) + 4))
-        all_rows_in_binary_factor = [None] * (len(B) + 4)
-        all_rows_in_factor = [None] * (len(B) + 4)
-        while i < len(B) + 4:
+        while i < len(self.B) + 4:
             j = j + 1
             if j & 1:
                 Z[i] = math.floor(math.sqrt(((j + 1) / 2) * self.n)) - c
@@ -119,12 +114,14 @@ class rsa_dixon_random_squares(implements(rsa_factorizer)):
         all_rows_in_binary_factor, all_rows_in_factor = np.array(all_rows_in_binary_factor), np.array(
             all_rows_in_factor)
         matrix, numpivots = reduced_row_echelon_form(all_rows_in_binary_factor.transpose())
-        p, q = factor_from_reduced_matrix(all_rows_in_binary_factor, numpivots, all_rows_in_factor, Z, B, self.n)
+        # I add this element now because it makes the factoring easier not to have it from the beginning
+        B = np.insert(B, 0, -1)
+        ones = np.array(
+            [[index for (index, bit) in enumerate(matrix[i, :]) if bit] for i in reversed(range(numpivots))])
+        p, q = factor_from_reduced_matrix(ones, Z, all_rows_in_factor, B, self.n)
         if p is not None and q is not None:
             return p, q
         return self.dixon(B, c + 1)
 
     def factorize(self):
-        k = int(math.exp(math.sqrt(math.log1p(self.n) * math.log1p(math.log1p(self.n)))))
-        B = np.array(primes_sieve(k))
-        return self.dixon(B, )
+        return self.dixon()
