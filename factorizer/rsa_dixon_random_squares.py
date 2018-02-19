@@ -30,7 +30,9 @@ def factorize_number_from_primes(number, primes, n):
     return None, None
 
 
-def find_next_selection(self, row_ones, pointers):
+def find_next_selection(row_ones, pointers):
+    if pointers is None or len(pointers) == 0 or pointers[0] == -1:
+        return None
     temp_pointers = list(pointers)
     i = 0
     while i != len(pointers):
@@ -42,8 +44,9 @@ def find_next_selection(self, row_ones, pointers):
         pointers[i] += 1
         for index in reversed(range(i)):
             pointers[index] = pointers[index + 1] + 1
-        return temp_pointers
-    return None
+        return row_ones[temp_pointers]
+    pointers[0] = -1
+    return row_ones[temp_pointers]
 
 
 class rsa_dixon_random_squares(implements(rsa_factorizer)):
@@ -69,21 +72,24 @@ class rsa_dixon_random_squares(implements(rsa_factorizer)):
     def factor_from_reduced_matrix(self, ones, current_index=0, forced_zeros=set(), forced_ones=set()):
         if current_index == len(ones):
             return self.test_congruences(forced_ones)
-        row_ones = ones[current_index]
-        ones_disjoint = [one for one in row_ones if one not in forced_ones and one not in forced_zeros]
+        row_ones = np.array(ones[current_index])
+        ones_disjoint = np.array([one for one in row_ones if one not in forced_ones and one not in forced_zeros])
         ones_intersect = forced_ones.intersection(row_ones)
         for d in reversed(range(0, len(ones_disjoint) + len(ones_intersect) + 1, 2)):
             pointers = [i for i in reversed(range(d - len(ones_intersect)))]
-            current_selection = find_next_selection(row_ones, pointers)
+            current_selection = find_next_selection(ones_disjoint, pointers)
             while current_selection is not None:
-                p, q = self.factor_from_reduced_matrix(ones, current_index + 1,
-                                                       forced_zeros + row_ones[
-                                                           np.setdiff1d(row_ones, current_selection)],
-                                                       forced_ones + current_selection)
+                difference_zeros = set(row_ones).difference(current_selection).difference(ones_intersect)
+                new_forced_zeros = forced_zeros.union(difference_zeros)
+                new_forced_ones = forced_ones.union(current_selection)
+                p, q = self.factor_from_reduced_matrix(ones, current_index + 1, new_forced_zeros, new_forced_ones)
                 if p is not None and q is not None:
                     return p, q
                 current_selection = find_next_selection(row_ones, pointers)
-        return None, None
+        if len(ones_intersect) & 1 == 0:
+            return self.factor_from_reduced_matrix(ones, current_index + 1, forced_zeros.union(ones_disjoint), forced_ones)
+        else:
+            return None, None
 
     def factorize(self, c=0):
         j = 0
