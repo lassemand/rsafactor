@@ -24,7 +24,7 @@ def factorize_number_from_primes(number, primes, n):
         if exponent != 0:
             list_of_factors.append(number ** exponent)
             factorized_number_binary_row[index] = exponent & 1 if number % prime == 0 else 0
-            current_factor_value = current_factor_value * (prime ** exponent)
+            current_factor_value = current_factor_value * (prime.item() ** exponent)
             if current_factor_value == number:
                 return factorized_number_binary_row, factorized_number_row
     return None, None
@@ -54,8 +54,12 @@ class rsa_dixon_random_squares(implements(rsa_factorizer)):
         self.counter = 0
         self.n = n
         self.e = e
-        k = int(math.exp(math.sqrt(math.log1p(self.n) * math.log1p(math.log1p(self.n)))))
+        k = int(math.exp(math.sqrt(math.log1p(self.n) * math.log1p(math.log1p(self.n)))) // 10)
+        print(k)
+        print("start sieve")
         self.B = np.array(primes_sieve(k), dtype=int)
+        print(len(self.B))
+        print("stop sieve")
         self.Z = np.array([None] * (len(self.B) + 4))
         self.all_rows_in_factor = [None] * (len(self.B) + 4)
         self.all_rows_in_binary_factor = [None] * (len(self.B) + 4)
@@ -99,6 +103,7 @@ class rsa_dixon_random_squares(implements(rsa_factorizer)):
     def factorize(self, c=0):
         j = 0
         i = 0
+        print("start building up matrices")
         while i < len(self.B) + 4:
             j = j + 1
             if j & 1:
@@ -115,12 +120,16 @@ class rsa_dixon_random_squares(implements(rsa_factorizer)):
                 self.all_rows_in_binary_factor[i] = should_negate_z_value + factorized_binary_number_row
                 self.all_rows_in_factor[i] = should_negate_z_value + factorized_number_row
                 i = i + 1
+        print("end building up matrices")
         self.all_rows_in_binary_factor, self.all_rows_in_factor = np.array(self.all_rows_in_binary_factor), np.array(
             self.all_rows_in_factor, dtype=object)
+        print("start echelon")
         matrix, numpivots = reduced_row_echelon_form(self.all_rows_in_binary_factor.transpose())
+        print("stop echelon")
         self.B = np.insert(self.B, 0, -1)
         ones = np.array(
             [[index for (index, bit) in enumerate(matrix[i, :]) if bit] for i in reversed(range(numpivots))])
+        print("ones")
         p, q = self.factor_from_reduced_matrix(ones)
         if p is not None and q is not None:
             return p, q
