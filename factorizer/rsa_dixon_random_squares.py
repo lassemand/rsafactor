@@ -51,10 +51,11 @@ def find_next_selection(row_ones, pointers):
 
 class rsa_dixon_random_squares(implements(rsa_factorizer)):
     def __init__(self, n, e):
+        self.counter = 0
         self.n = n
         self.e = e
         k = int(math.exp(math.sqrt(math.log1p(self.n) * math.log1p(math.log1p(self.n)))))
-        self.B = np.array(primes_sieve(k))
+        self.B = np.array(primes_sieve(k), dtype=int)
         self.Z = np.array([None] * (len(self.B) + 4))
         self.all_rows_in_factor = [None] * (len(self.B) + 4)
         self.all_rows_in_binary_factor = [None] * (len(self.B) + 4)
@@ -62,8 +63,10 @@ class rsa_dixon_random_squares(implements(rsa_factorizer)):
     def test_congruences(self, forced_ones):
         list_z_values = list(forced_ones)
         z_congruence = np.prod(self.Z[list_z_values]) % self.n
-        y_values = self.B[1:] ** (np.sum(self.all_rows_in_factor[:, 1:][list_z_values, :], axis=0) / 2)
-        y_congruence = int(np.prod(y_values)) % self.n
+        exponent_sum = np.sum(self.all_rows_in_factor[list_z_values, :], axis=0, dtype=int)
+        y_congruence = 1
+        for index in range(1, len(self.B)):
+            y_congruence = (y_congruence * self.B[index].item() ** (exponent_sum[index].item() // 2)) % self.n
         p = math.gcd(z_congruence + y_congruence, self.n)
         if p != 1 and p != self.n:
             return p, int(self.n / p)
@@ -71,6 +74,8 @@ class rsa_dixon_random_squares(implements(rsa_factorizer)):
 
     def factor_from_reduced_matrix(self, ones, current_index=0, forced_zeros=set(), forced_ones=set()):
         if current_index == len(ones):
+            print(self.counter)
+            self.counter += 1
             return self.test_congruences(forced_ones)
         row_ones = np.array(ones[current_index])
         ones_disjoint = np.array([one for one in row_ones if one not in forced_ones and one not in forced_zeros])
@@ -111,7 +116,7 @@ class rsa_dixon_random_squares(implements(rsa_factorizer)):
                 self.all_rows_in_factor[i] = should_negate_z_value + factorized_number_row
                 i = i + 1
         self.all_rows_in_binary_factor, self.all_rows_in_factor = np.array(self.all_rows_in_binary_factor), np.array(
-            self.all_rows_in_factor)
+            self.all_rows_in_factor, dtype=object)
         matrix, numpivots = reduced_row_echelon_form(self.all_rows_in_binary_factor.transpose())
         self.B = np.insert(self.B, 0, -1)
         ones = np.array(
