@@ -73,7 +73,7 @@ class rsa_dixon_random_squares(implements(rsa_factorizer)):
             if current_index == -1:
                 return None, None
             if current_index == len(ones):
-                return self.test_congruences(states[current_index][1])
+                return self.test_congruence.validate(states[current_index][1], self.Z, self.all_rows_in_factor, self.B, self.n)
             if not states[current_index][3]:
                 row_ones = np.array(ones[current_index])
                 ones_disjoint = np.array([one for one in row_ones if
@@ -105,25 +105,27 @@ class rsa_dixon_random_squares(implements(rsa_factorizer)):
             current_index -= 1
         return p, q
 
-    def factorize(self, c=0):
-        self.Z = np.array([None] * (len(self.B) + 1))
-        self.all_rows_in_factor = [None] * (len(self.B) + 1)
-        self.all_rows_in_binary_factor = [None] * (len(self.B) + 1)
+    def build_up_test_values(self, c):
+        Z = np.array([None] * (len(self.B) + 1))
+        all_rows_in_factor = [None] * (len(self.B) + 1)
+        all_rows_in_binary_factor = [None] * (len(self.B) + 1)
         j = 0
         i = 0
-        print("start building up matrices")
         while i < len(self.B) + 1:
             j = j + 1
-            self.Z[i] = math.ceil(math.sqrt(j * self.n)) + c
-            number = self.Z[i] ** 2 % self.n
+            Z[i] = math.ceil(math.sqrt(j * self.n)) + c
+            number = Z[i] ** 2 % self.n
             factorized_binary_number_row, factorized_number_row = factorize_number_from_primes(number, self.B, self.n)
             if factorized_number_row is not None:
-                self.all_rows_in_binary_factor[i] = factorized_binary_number_row
-                self.all_rows_in_factor[i] = factorized_number_row
+                all_rows_in_binary_factor[i] = factorized_binary_number_row
+                all_rows_in_factor[i] = factorized_number_row
                 i = i + 1
+        return Z, np.array(all_rows_in_binary_factor), np.array(all_rows_in_factor)
+
+    def factorize(self, c=0):
+        print("start building up matrices")
+        self.Z, self.all_rows_in_binary_factor, self.all_rows_in_factor = self.build_up_test_values(c)
         print("end building up matrices")
-        self.all_rows_in_binary_factor, self.all_rows_in_factor = np.array(self.all_rows_in_binary_factor), np.array(
-            self.all_rows_in_factor, dtype=object)
         print("start echelon")
         matrix, numpivots = reduced_row_echelon_form(self.all_rows_in_binary_factor.transpose())
         print("stop echelon")
@@ -135,21 +137,4 @@ class rsa_dixon_random_squares(implements(rsa_factorizer)):
             return p, q
         return self.factorize(c + 1)
 
-class Test_Congruence(Interface):
-    def test(self, forced_ones):
-        pass
 
-class rsa_dixon_random_squares_test_congruence(implements(rsa_factorizer)):
-
-
-    def test(self, forced_ones):
-        list_z_values = list(forced_ones)
-        z_congruence = np.prod(self.Z[list_z_values]) % self.n
-        exponent_sum = np.sum(self.all_rows_in_factor[list_z_values, :], axis=0, dtype=int)
-        y_congruence = 1
-        for index in range(len(self.B)):
-            y_congruence = (y_congruence * self.B[index].item() ** (exponent_sum[index].item() // 2)) % self.n
-        p = math.gcd(z_congruence + y_congruence, self.n)
-        if p != 1 and p != self.n:
-            return p, int(self.n / p)
-        return None, None

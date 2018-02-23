@@ -1,3 +1,4 @@
+import random
 from multiprocessing import Queue
 from multiprocessing import Process
 
@@ -9,10 +10,11 @@ from factorizer.rsa_pollard_rho import rsa_pollard_rho
 
 def worker(n, e, queue, i):
     fac = rsa_pollard_rho(n, e, i)
-    queue.put(fac.factorize())
+    a = random.randint(1, 101)
+    queue.put(fac.factorize(f = lambda u: u ** 2 + a))
 
 
-class rsa_pollard_rho_parallel(implements(rsa_factorizer)):
+class rsa_pollard_rho_parallel_independent(implements(rsa_factorizer)):
     def __init__(self, n, e):
         self.n = n
         self.e = e
