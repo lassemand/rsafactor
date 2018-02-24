@@ -5,8 +5,8 @@ import rsa
 
 from factorizer.dixon_random_squares.rsa_dixon_random_squares import rsa_dixon_random_squares, \
     factorize_number_from_primes
+from factorizer.pollard_rho.rsa_pollard_rho import rsa_pollard_rho
 from factorizer.rsa_brute_force import rsa_brute_force
-from factorizer.rsa_pollard_rho import rsa_pollard_rho
 
 
 class TestFactorizer(unittest.TestCase):
