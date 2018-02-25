@@ -21,7 +21,7 @@ class rsa_pollard_rho_parallel_independent(implements(rsa_factorizer)):
 
     def factorize(self):
         queue = Queue()
-        process = [Process(target=worker, args=(self.n, self.e, queue, i,)) for i in range(4)]
+        process = [Process(target=worker, args=(self.n, self.e, queue, i,)) for i in range(3)]
         for t in process:
             t.start()
         p, q = queue.get()
