@@ -18,3 +18,4 @@ class rsa_dixon_random_squares_test_congruence(implements(dixon_congruence_valid
         if p != 1 and p != n:
             return p, int(n / p)
         return None, None
+

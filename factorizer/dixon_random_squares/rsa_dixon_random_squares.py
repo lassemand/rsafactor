@@ -1,5 +1,6 @@
 import math
 import numpy as np
+import time
 
 from interface import implements, Interface
 
@@ -51,10 +52,9 @@ class rsa_dixon_random_squares(implements(rsa_factorizer)):
         self.test_congruence = test_congruence
         self.n = n
         self.e = e
-        k = int(math.exp(0.5 * math.sqrt(math.log1p(self.n) * math.log1p(math.log1p(self.n)))))
+        k = int(math.exp(1.0 * math.sqrt(math.log1p(self.n) * math.log1p(math.log1p(self.n)))))
         self.B = np.array(primes_sieve(k), dtype=int)
         print(len(self.B))
-
 
     def factor_from_reduced_matrix(self, ones):
         p, q = None, None
@@ -73,11 +73,12 @@ class rsa_dixon_random_squares(implements(rsa_factorizer)):
             if current_index == -1:
                 return None, None
             if current_index == len(ones):
-                return self.test_congruence.validate(states[current_index][1], self.Z, self.all_rows_in_factor, self.B, self.n)
+                return self.test_congruence.validate(states[current_index][1], self.Z, self.all_rows_in_factor, self.B,
+                                                     self.n)
             if not states[current_index][3]:
                 row_ones = np.array(ones[current_index])
                 ones_disjoint = np.array([one for one in row_ones if
-                                      one not in states[current_index][1] and one not in states[current_index][0]])
+                                          one not in states[current_index][1] and one not in states[current_index][0]])
                 ones_intersect = states[current_index][1].intersection(row_ones)
                 pointers = states[current_index][2]
                 if pointers is None:
@@ -122,19 +123,27 @@ class rsa_dixon_random_squares(implements(rsa_factorizer)):
                 i = i + 1
         return Z, np.array(all_rows_in_binary_factor), np.array(all_rows_in_factor)
 
-    def factorize(self, c=0):
+    def factorize(self, c=1):
         print("start building up matrices")
+        start_time = int(round(time.time() * 1000))
         self.Z, self.all_rows_in_binary_factor, self.all_rows_in_factor = self.build_up_test_values(c)
+        end_time = int(round(time.time() * 1000))
+        print("Building: " + str(end_time - start_time))
         print("end building up matrices")
         print("start echelon")
+        start_time = int(round(time.time() * 1000))
         matrix, numpivots = reduced_row_echelon_form(self.all_rows_in_binary_factor.transpose())
+        end_time = int(round(time.time() * 1000))
+        print("Echelon: " + str(end_time - start_time))
+        print("start echelon")
         print("stop echelon")
+        start_time = int(round(time.time() * 1000))
         ones = np.array(
             [[index for (index, bit) in enumerate(matrix[i, :]) if bit] for i in reversed(range(numpivots))])
         print("ones")
         p, q = self.factor_from_reduced_matrix(ones)
+        end_time = int(round(time.time() * 1000))
+        print("Factor: " + str(end_time - start_time))
         if p is not None and q is not None:
             return p, q
         return self.factorize(c + 1)
-
-
