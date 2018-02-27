@@ -9,9 +9,13 @@ if __name__ == "__main__":
                         help='bits to be executed')
     parser.add_argument('--rounds', required=True, type=int, help='number of rounds to be executed')
     parser.add_argument('--method', help='method to be used')
+    parser.add_argument('--processes', type=int, help='number of processes to be used')
     args = parser.parse_args()
 
-    factorizer_dict = generate_factorizers_dict(args.bits, args.method)
+    if args.processes is None:
+        args.processes = 3
+
+    factorizer_dict = generate_factorizers_dict(args.bits, args.method, args.processes)
     result = average_of_factorizers(factorizer_dict, args.rounds)
     persistance = sqlite_persistance()
     persistance.save_statistics(result, args.method)
