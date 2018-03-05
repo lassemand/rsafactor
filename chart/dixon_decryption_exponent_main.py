@@ -1,7 +1,6 @@
 import argparse
 
 import matplotlib.pyplot as plt
-import random
 
 from persistance import sqlite_persistance
 
@@ -17,7 +16,7 @@ if __name__ == "__main__":
     stats = persistance.retrieve_statistics(types)
     plt.yscale('log')
     for (index, stat) in enumerate(stats):
-        plt.plot(stat[0], stat[1], color=generate_random_chart_color(index), label='test')
+        plt.plot(stat[0], stat[1], color=generate_random_chart_color(index), label=types[index])
         plt.legend()
     plt.xticks(list(set([item for sublist in [s[0] for s in stats] for item in sublist])))
     plt.ylabel('Execution time')

@@ -3,6 +3,7 @@ import rsa
 from interface import implements
 
 from factorizer.dixon_random_squares.rsa_dixon_random_squares import rsa_dixon_random_squares
+from factorizer.dixon_random_squares.rsa_dixon_random_squares_parallel import rsa_dixon_random_squares_parallel
 from factorizer.dixon_random_squares.rsa_dixon_random_squares_validate_congruence import \
     rsa_dixon_random_squares_test_congruence
 from factorizer.pollard_rho.k_calculator import k_calculator
@@ -23,6 +24,7 @@ def generate_factorizer(bits, method, processes):
         'pollard_rho_parallel': rsa_pollard_rho_parallel(pubkey.n, pubkey.e, processes, basic_k_calculator(), advanced_n_calculator()),
         'pollard_rho_parallel_independent': rsa_pollard_rho_parallel_independent(pubkey.n, pubkey.e),
         'dixon_random_square': rsa_dixon_random_squares(pubkey.n, pubkey.e, rsa_dixon_random_squares_test_congruence()),
+        'dixon_random_square_parallel': rsa_dixon_random_squares_parallel(pubkey.n, pubkey.e, processes, rsa_dixon_random_squares_test_congruence()),
     }[method]
 
 def generate_factorizers_dict(bits_list, method, processes):

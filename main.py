@@ -14,8 +14,8 @@ if __name__ == "__main__":
 
     if args.processes is None:
         args.processes = 3
-
-    factorizer_dict = generate_factorizers_dict(args.bits, args.method, args.processes)
-    result = average_of_factorizers(factorizer_dict, args.rounds)
     persistance = sqlite_persistance()
-    persistance.save_statistics(result, args.method)
+    for _ in range(args.rounds):
+        factorizer_dict = generate_factorizers_dict(args.bits, args.method, args.processes)
+        result = average_of_factorizers(factorizer_dict)
+        persistance.save_statistics(result, args.method)

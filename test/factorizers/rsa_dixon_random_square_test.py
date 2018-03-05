@@ -7,7 +7,7 @@ from multiprocessing import Queue
 
 from factorizer.dixon_random_squares.dixon_congruence_validator import dixon_congruence_validator
 from factorizer.dixon_random_squares.rsa_dixon_random_squares import rsa_dixon_random_squares, find_next_selection
-from factorizer.dixon_random_squares.rsa_dixon_random_squares_parallel import build_up_test_values
+from factorizer.dixon_random_squares.rsa_dixon_random_squares_parallel import build_up_congruence_values
 from factorizer.dixon_random_squares.rsa_dixon_random_squares_validate_congruence import \
     rsa_dixon_random_squares_test_congruence
 
@@ -53,7 +53,7 @@ class rsa_dixon_random_square_test(unittest.TestCase):
 
     def test_build_up_test_values(self):
         queue = Queue()
-        build_up_test_values(1, 77, 3, np.array([2, 3, 5, 7]), queue)
+        build_up_congruence_values(1, 77, 3, np.array([2, 3, 5, 7]), queue, 0, 1)
         Z, rows_in_factor = queue.get()
         self.assertEqual(3, len(Z))
         self.assertEqual(3, len(rows_in_factor))
