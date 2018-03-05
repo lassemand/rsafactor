@@ -12,6 +12,7 @@ from factorizer.pollard_rho.rsa_brent_pollard_rho import rsa_brent_pollard_rho
 from factorizer.pollard_rho.rsa_pollard_rho import rsa_pollard_rho
 from factorizer.pollard_rho.rsa_pollard_rho_parallel import rsa_pollard_rho_parallel
 from factorizer.pollard_rho.rsa_pollard_rho_parallel_independent import rsa_pollard_rho_parallel_independent
+from factorizer.quadratic_sieve.rsa_quadratic_sieve import rsa_quadratic_sieve
 from factorizer.rsa_brute_force import rsa_brute_force
 
 
@@ -25,6 +26,7 @@ def generate_factorizer(bits, method, processes):
         'pollard_rho_parallel_independent': rsa_pollard_rho_parallel_independent(pubkey.n, pubkey.e),
         'dixon_random_square': rsa_dixon_random_squares(pubkey.n, pubkey.e, rsa_dixon_random_squares_test_congruence()),
         'dixon_random_square_parallel': rsa_dixon_random_squares_parallel(pubkey.n, pubkey.e, processes, rsa_dixon_random_squares_test_congruence()),
+        'quadratic_sieve': rsa_quadratic_sieve(pubkey.n, pubkey.e),
     }[method]
 
 def generate_factorizers_dict(bits_list, method, processes):
