@@ -20,13 +20,6 @@ SIQS_MIN_PRIME_POLYNOMIAL = 400
 SIQS_MAX_PRIME_POLYNOMIAL = 4000
 
 
-
-
-
-
-
-
-
 def factor_base_primes(n, nf):
     """Compute and return nf factor base primes suitable for a Quadratic
     Sieve on the number n.
@@ -43,7 +36,7 @@ def factor_base_primes(n, nf):
     return factor_base
 
 
-def find_polynomials_and_calculate_values(b, a, n, factor_base):
+def find_polynomials_and_calculate_values(b, a, n, factor_base, is_first_time):
     b_orig = b
     if (2 * b > a):
         b = a - b
@@ -53,15 +46,14 @@ def find_polynomials_and_calculate_values(b, a, n, factor_base):
     h = polynomial([b, a])
     for fb in factor_base:
         if a % fb.p != 0:
+            if is_first_time:
+                fb.ainv = inv_mod(a, fb.p)
             fb.soln1 = (fb.ainv * (fb.tmem - b)) % fb.p
             fb.soln2 = (fb.ainv * (-fb.tmem - b)) % fb.p
     return g, h
 
 
-def find_first_polynomial(n, m, factor_base):
-    """Compute the first of a set of polynomials for the Self-
-    Initialising Quadratic Sieve.
-    """
+def calculate_max_and_min_values(n, m, factor_base):
     p_min_i = None
     p_max_i = None
     for i, fb in enumerate(factor_base):
@@ -77,11 +69,27 @@ def find_first_polynomial(n, m, factor_base):
         p_max_i = len(factor_base) - 1
     if p_min_i is None or p_max_i - p_min_i < 20:
         p_min_i = min(p_min_i, 5)
+    return p_min_i, p_max_i
 
+
+def calculate_B_values(q, a, factor_base):
+    s = len(q)
+    B = []
+    for l in range(s):
+        fb_l = factor_base[q[l]]
+        q_l = fb_l.p
+        assert a % q_l == 0
+        gamma = (fb_l.tmem * inv_mod(a // q_l, q_l)) % q_l
+        if gamma > q_l // 2:
+            gamma = q_l - gamma
+        B.append(a // q_l * gamma)
+    return B
+
+
+def find_best_a_and_q_values(n, m, p_min_i, p_max_i, factor_base):
     target = sqrt(2 * float(n)) / m
     target1 = target / ((factor_base[p_min_i].p +
                          factor_base[p_max_i].p) / 2) ** 0.5
-
     # find q such that the product of factor_base[q_i] is approximately
     # sqrt(2 * n) / m; try a few different sets to find a good one
     best_q, best_a, best_ratio = None, None, None
@@ -101,43 +109,22 @@ def find_first_polynomial(n, m, factor_base):
 
         # ratio too small seems to be not good
         if (best_ratio is None or (ratio >= 0.9 and ratio < best_ratio) or
-                    best_ratio < 0.9 and ratio > best_ratio):
+                        best_ratio < 0.9 and ratio > best_ratio):
             best_q = q
             best_a = a
             best_ratio = ratio
-    a = best_a
-    q = best_q
+    return best_q, best_a
 
-    s = len(q)
-    B = []
-    for l in range(s):
-        fb_l = factor_base[q[l]]
-        q_l = fb_l.p
-        assert a % q_l == 0
-        gamma = (fb_l.tmem * inv_mod(a // q_l, q_l)) % q_l
-        if gamma > q_l // 2:
-            gamma = q_l - gamma
-        B.append(a // q_l * gamma)
 
-    b = sum(B) % a
-    b_orig = b
-    if (2 * b > a):
-        b = a - b
-
-    assert 0 < b
-    assert 2 * b <= a
-    assert ((b * b - n) % a == 0)
-
-    g = polynomial([b * b - n, 2 * a * b, a * a], a, b_orig)
-    h = polynomial([b, a])
-    for fb in factor_base:
-        if a % fb.p != 0:
-            fb.ainv = inv_mod(a, fb.p)
-            fb.soln1 = (fb.ainv * (fb.tmem - b)) % fb.p
-            fb.soln2 = (fb.ainv * (-fb.tmem - b)) % fb.p
-
+def find_first_polynomial(n, m, factor_base):
+    """Compute the first of a set of polynomials for the Self-
+    Initialising Quadratic Sieve.
+    """
+    p_min_i, p_max_i = calculate_max_and_min_values(n, m, factor_base)
+    q, a = find_best_a_and_q_values(n, m, p_min_i, p_max_i, factor_base)
+    B = calculate_B_values(q, a, factor_base)
+    g, h = find_polynomials_and_calculate_values(sum(B) % a, a, n, factor_base, True)
     return g, h, B
-
 
 
 def siqs_find_next_poly(n, factor_base, i, g, B):
@@ -145,10 +132,10 @@ def siqs_find_next_poly(n, factor_base, i, g, B):
     Quadratic Sieve, given that g is the i-th polynomial.
     """
     v = lowest_set_bit(i) + 1
-    z = -1 if ceil(i / (2 ** v)) % 2 == 1 else 1
+    z = -1 if ceil(i / (2 ** v)) & 1 else 1
     b = (g.b + 2 * z * B[v - 1]) % g.a
     a = g.a
-    return find_polynomials_and_calculate_values(b, a, n, factor_base)
+    return find_polynomials_and_calculate_values(b, a, n, factor_base, False)
 
 
 def siqs_sieve(factor_base, m):
@@ -212,8 +199,6 @@ def siqs_trial_division(n, sieve_array, factor_base, smooth_relations, g, h, m,
     return False
 
 
-
-
 def siqs_calc_sqrts(square_indices, smooth_relations):
     """Given on of the solutions returned by siqs_solve_matrix_opt and
     the corresponding smooth relations, calculate the pair [a, b], such
@@ -253,7 +238,7 @@ def siqs_find_factors(n, perfect_squares, smooth_relations):
         if fact != 1 and fact != rem:
             if is_probable_prime(fact):
                 if fact not in prime_factors:
-                    print ("SIQS: Prime factor found: %d" % fact)
+                    print("SIQS: Prime factor found: %d" % fact)
                     prime_factors.add(fact)
 
                 while rem % fact == 0:
@@ -268,14 +253,14 @@ def siqs_find_factors(n, perfect_squares, smooth_relations):
                     break
             else:
                 if fact not in non_prime_factors:
-                    print ("SIQS: Non-prime factor found: %d" % fact)
+                    print("SIQS: Non-prime factor found: %d" % fact)
                     non_prime_factors.add(fact)
 
     if rem != 1 and non_prime_factors:
         non_prime_factors.add(rem)
         for fact in sorted(siqs_find_more_factors_gcd(non_prime_factors)):
             while fact != 1 and rem % fact == 0:
-                print ("SIQS: Prime factor found: %d" % fact)
+                print("SIQS: Prime factor found: %d" % fact)
                 factors.append(fact)
                 rem //= fact
             if rem == 1 or is_probable_prime(rem):
@@ -300,8 +285,6 @@ def siqs_find_more_factors_gcd(numbers):
                     res.add(n // fact)
                     res.add(m // fact)
     return res
-
-
 
 
 class rsa_quadratic_sieve(implements(rsa_factorizer)):
@@ -363,5 +346,3 @@ class rsa_quadratic_sieve(implements(rsa_factorizer)):
                 required_congruence_ratio += 0.05
 
             return factors[0], int(self.n / factors[0])
-
-

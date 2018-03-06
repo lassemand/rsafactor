@@ -7,7 +7,7 @@ MILLER_RABIN_ITERATIONS = 50
 def lowest_set_bit(a):
     b = (a & -a)
     low_bit = -1
-    while (b):
+    while b:
         b >>= 1
         low_bit += 1
     return low_bit
