@@ -14,9 +14,10 @@ from helper.cryptographic_methods import is_quadratic_residue, modular_square_ro
     is_probable_prime, sqrt_int, choose_nf_m
 from helper.primes_sieve import primes_sieve
 
-SIQS_TRIAL_DIVISION_EPS = 25
-SIQS_MIN_PRIME_POLYNOMIAL = 400
-SIQS_MAX_PRIME_POLYNOMIAL = 4000
+TRIAL_DIVISION_EPS = 20
+MIN_PRIME_POLYNOMIAL = 400
+MAX_PRIME_POLYNOMIAL = 4000
+SMALLEST_PRIME_TO_BE_IN_SIEVE = 20
 
 
 def factor_base_primes(n, nf):
@@ -55,9 +56,9 @@ def calculate_limits(factor_base):
     p_min_i = None
     p_max_i = None
     for i, fb in enumerate(factor_base):
-        if p_min_i is None and fb.p >= SIQS_MIN_PRIME_POLYNOMIAL:
+        if p_min_i is None and fb.p >= MIN_PRIME_POLYNOMIAL:
             p_min_i = i
-        if p_max_i is None and fb.p > SIQS_MAX_PRIME_POLYNOMIAL:
+        if p_max_i is None and fb.p > MAX_PRIME_POLYNOMIAL:
             p_max_i = i - 1
             break
 
@@ -82,6 +83,7 @@ def calculate_B_values(q, a, factor_base):
     return B
 
 
+# TODO: Use gradient descent on calculating a instead of randomly choosing stuff
 def find_best_a_and_q_values(n, m, p_min_i, p_max_i, factor_base):
     target = sqrt(2 * float(n)) / m
     target1 = target / ((factor_base[p_min_i].p +
@@ -137,7 +139,8 @@ def sieve_factor_base(factor_base, m):
     for fb in factor_base:
         if fb.soln1 is None:
             continue
-        if fb.p > 20:
+        # TODO: Make this value dynamic
+        if fb.p > SMALLEST_PRIME_TO_BE_IN_SIEVE:
             i_start_1 = ((m + fb.soln1) // fb.p)
             a_start_1 = fb.soln1 - i_start_1 * fb.p
             for a in range(a_start_1 + m, 2 * m + 1, fb.p):
@@ -150,7 +153,7 @@ def sieve_factor_base(factor_base, m):
     return sieve_array
 
 
-def siqs_trial_divide(a, factor_base):
+def trial_divide(a, factor_base):
     """Determine whether the given number a can be fully factorised into
     primes from the factors base. If so, return the indices of the
     factors from the factor base. If not, return None.
@@ -168,24 +171,19 @@ def siqs_trial_divide(a, factor_base):
     return None
 
 
-def siqs_trial_division(n, sieve_array, factor_base, smooth_relations, g, h, m,
-                        req_relations):
-    """Perform the trial division step of the Self-Initializing
-    Quadratic Sieve.
-    """
-    sqrt_n = sqrt(float(n))
-    limit = log2(m * sqrt_n) - SIQS_TRIAL_DIVISION_EPS
+def trial_division(n, sieve_array, factor_base, smooth_relations, g, h, m,
+                   req_relations):
+    limit = log2(m * sqrt(n)) - TRIAL_DIVISION_EPS
     for (i, sa) in enumerate(sieve_array):
         if sa >= limit:
             x = i - m
             gx = g.eval(x)
-            divisors_idx = siqs_trial_divide(gx, factor_base)
+            divisors_idx = trial_divide(gx, factor_base)
             if divisors_idx is not None:
                 u = h.eval(x)
                 v = gx
-                assert (u * u) % n == v % n
                 smooth_relations.append((u, v, divisors_idx))
-                if (len(smooth_relations) >= req_relations):
+                if len(smooth_relations) >= req_relations:
                     return True
     return False
 
@@ -312,7 +310,7 @@ class rsa_quadratic_sieve(implements(rsa_factorizer)):
                 if i_poly >= 2 ** (len(B) - 1):
                     i_poly = 0
                 sieve_array = sieve_factor_base(factor_base, m)
-                enough_relations = siqs_trial_division(
+                enough_relations = trial_division(
                     self.n, sieve_array, factor_base, smooth_relations,
                     g, h, m, required_relations)
 
