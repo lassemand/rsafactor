@@ -55,12 +55,11 @@ def legendre(a, q, l, n):
     return z
 
 
-def sqrt_mod_prime(a, p):
+def modular_square_root(a, p):
     """Return the square root of a modulo the prime p. Behaviour is
     undefined if a is not a quadratic residue mod p."""
     # Algorithm from http://www.mersennewiki.org/index.php/Modular_Square_Root
     assert a < p
-    assert is_probable_prime(p)
     if a == 0:
         return 0
     if p == 2:

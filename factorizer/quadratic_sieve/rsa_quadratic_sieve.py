@@ -1,8 +1,7 @@
 #!/usr/bin/python3 -O
 
-from math import sqrt, log2, ceil, floor
+from math import sqrt, log2, ceil
 import random
-from fractions import gcd
 
 import math
 from interface import implements
@@ -11,7 +10,7 @@ from factorizer.quadratic_sieve.factor_base_prime import factor_base_prime
 from factorizer.quadratic_sieve.matrix_operations import siqs_build_matrix, siqs_build_matrix_opt, siqs_solve_matrix_opt
 from factorizer.quadratic_sieve.polynomial import polynomial
 from factorizer.rsa_factorizer import rsa_factorizer
-from helper.cryptographic_methods import is_quadratic_residue, sqrt_mod_prime, inv_mod, lowest_set_bit, \
+from helper.cryptographic_methods import is_quadratic_residue, modular_square_root, inv_mod, lowest_set_bit, \
     is_probable_prime, sqrt_int, choose_nf_m
 from helper.primes_sieve import primes_sieve
 
@@ -28,7 +27,7 @@ def factor_base_primes(n, nf):
     factor_base = []
     for p in small_primes:
         if is_quadratic_residue(n, p):
-            t = sqrt_mod_prime(n % p, p)
+            t = modular_square_root(n % p, p)
             lp = round(log2(p))
             factor_base.append(factor_base_prime(p, t, lp))
             if len(factor_base) >= nf:
@@ -38,9 +37,8 @@ def factor_base_primes(n, nf):
 
 def find_polynomials_and_calculate_values(b, a, n, factor_base, is_first_time):
     b_orig = b
-    if (2 * b > a):
+    if 2 * b > a:
         b = a - b
-    assert ((b * b - n) % a == 0)
 
     g = polynomial([b * b - n, 2 * a * b, a * a], a, b_orig)
     h = polynomial([b, a])
@@ -53,7 +51,7 @@ def find_polynomials_and_calculate_values(b, a, n, factor_base, is_first_time):
     return g, h
 
 
-def calculate_max_and_min_values(n, m, factor_base):
+def calculate_limits(factor_base):
     p_min_i = None
     p_max_i = None
     for i, fb in enumerate(factor_base):
@@ -73,12 +71,10 @@ def calculate_max_and_min_values(n, m, factor_base):
 
 
 def calculate_B_values(q, a, factor_base):
-    s = len(q)
     B = []
-    for l in range(s):
-        fb_l = factor_base[q[l]]
+    for q_i in q:
+        fb_l = factor_base[q_i]
         q_l = fb_l.p
-        assert a % q_l == 0
         gamma = (fb_l.tmem * inv_mod(a // q_l, q_l)) % q_l
         if gamma > q_l // 2:
             gamma = q_l - gamma
@@ -90,8 +86,6 @@ def find_best_a_and_q_values(n, m, p_min_i, p_max_i, factor_base):
     target = sqrt(2 * float(n)) / m
     target1 = target / ((factor_base[p_min_i].p +
                          factor_base[p_max_i].p) / 2) ** 0.5
-    # find q such that the product of factor_base[q_i] is approximately
-    # sqrt(2 * n) / m; try a few different sets to find a good one
     best_q, best_a, best_ratio = None, None, None
     for _ in range(30):
         a = 1
@@ -107,8 +101,7 @@ def find_best_a_and_q_values(n, m, p_min_i, p_max_i, factor_base):
 
         ratio = a / target
 
-        # ratio too small seems to be not good
-        if (best_ratio is None or (ratio >= 0.9 and ratio < best_ratio) or
+        if (best_ratio is None or (0.9 <= ratio < best_ratio) or
                         best_ratio < 0.9 and ratio > best_ratio):
             best_q = q
             best_a = a
@@ -120,7 +113,7 @@ def find_first_polynomial(n, m, factor_base):
     """Compute the first of a set of polynomials for the Self-
     Initialising Quadratic Sieve.
     """
-    p_min_i, p_max_i = calculate_max_and_min_values(n, m, factor_base)
+    p_min_i, p_max_i = calculate_limits(factor_base)
     q, a = find_best_a_and_q_values(n, m, p_min_i, p_max_i, factor_base)
     B = calculate_B_values(q, a, factor_base)
     g, h = find_polynomials_and_calculate_values(sum(B) % a, a, n, factor_base, True)
@@ -138,24 +131,22 @@ def siqs_find_next_poly(n, factor_base, i, g, B):
     return find_polynomials_and_calculate_values(b, a, n, factor_base, False)
 
 
-def siqs_sieve(factor_base, m):
+def sieve_factor_base(factor_base, m):
     """Perform the sieving step of the SIQS. Return the sieve array."""
     sieve_array = [0] * (2 * m + 1)
     for fb in factor_base:
         if fb.soln1 is None:
             continue
-        p = fb.p
-        i_start_1 = -((m + fb.soln1) // p)
-        a_start_1 = fb.soln1 + i_start_1 * p
-        lp = fb.lp
-        if p > 20:
-            for a in range(a_start_1 + m, 2 * m + 1, p):
-                sieve_array[a] += lp
+        if fb.p > 20:
+            i_start_1 = ((m + fb.soln1) // fb.p)
+            a_start_1 = fb.soln1 - i_start_1 * fb.p
+            for a in range(a_start_1 + m, 2 * m + 1, fb.p):
+                sieve_array[a] += fb.lp
 
-            i_start_2 = -((m + fb.soln2) // p)
-            a_start_2 = fb.soln2 + i_start_2 * p
-            for a in range(a_start_2 + m, 2 * m + 1, p):
-                sieve_array[a] += lp
+            i_start_2 = -((m + fb.soln2) // fb.p)
+            a_start_2 = fb.soln2 + i_start_2 * fb.p
+            for a in range(a_start_2 + m, 2 * m + 1, fb.p):
+                sieve_array[a] += fb.lp
     return sieve_array
 
 
@@ -320,7 +311,7 @@ class rsa_quadratic_sieve(implements(rsa_factorizer)):
                 i_poly += 1
                 if i_poly >= 2 ** (len(B) - 1):
                     i_poly = 0
-                sieve_array = siqs_sieve(factor_base, m)
+                sieve_array = sieve_factor_base(factor_base, m)
                 enough_relations = siqs_trial_division(
                     self.n, sieve_array, factor_base, smooth_relations,
                     g, h, m, required_relations)
