@@ -1,80 +1,85 @@
 import math
-import random
+from multiprocessing import Queue
+from multiprocessing import Process
+
 import numpy as np
+import time
 
 from interface import implements
 
+from factorizer.dixon_random_squares.rsa_dixon_random_squares import factor_from_reduced_matrix, \
+    factorize_number_from_primes
 from factorizer.rsa_factorizer import rsa_factorizer
-import threading
-from multiprocessing import Queue
+from helper.gaussian_elimination import reduced_row_echelon_form
+from helper.primes_sieve import primes_sieve
 
 
-def compute_values(queue, trial_n, n, k, a):
-    f = lambda u: (u ** (2 * k) + a) % n
-    Y = [None] * trial_n
-    X = [None] * trial_n
-    x = random.randint(2, n - 1)
-    y = x
-    for i in range(trial_n):
-        x = f(x)
-        y = f(f(y))
-        X[i] = x
-        Y[i] = y
-    print("One thread done")
-    queue.put((X, Y))
-
-def pollard_rho_parallel(xs, ys, queue):
-    Q = 1
-    for i in range(len(xs)):
-        X = xs[i]
-        Y = ys[i]
-        for y in Y:
-            for x in X:
-                Q *= y - x
-    queue.put(Q)
+def build_up_congruence_values(c, n, size, B, queue, pad, m):
+    Z = [None] * size
+    rows_in_factor = [[0] * len(B)] * size
+    rows_in_binary_factor = [[0] * len(B)] * size
+    j = 0
+    i = 0
+    while i < size:
+        j = j + 1
+        Z[i] = math.ceil(math.sqrt(int(j*m+pad) * n)) + c
+        number = Z[i] ** 2 % n
+        factorized_binary_number_row, factorized_number_row = factorize_number_from_primes(number, B)
+        if factorized_number_row is not None:
+            rows_in_factor[i] = factorized_number_row
+            rows_in_binary_factor[i] = factorized_binary_number_row
+            i = i + 1
+    queue.put((Z, rows_in_factor, rows_in_binary_factor))
 
 
-class rsa_pollard_rho_parallel(implements(rsa_factorizer)):
-    def __init__(self, n, e, m, k_calculator, n_calculator):
+class rsa_dixon_random_squares_parallel(implements(rsa_factorizer)):
+    def __init__(self, n, e, m, test_congruence):
+        self.test_congruence = test_congruence
         self.n = n
         self.e = e
         self.m = m
-        self.k_calculator = k_calculator
-        self.n_calculator = n_calculator
+        k = int(math.exp(0.5 * math.sqrt(math.log1p(self.n) * math.log1p(math.log1p(self.n)))))
+        self.B = np.array(primes_sieve(k), dtype=int)
+        print(len(self.B))
 
-
-    def factorize(self, a=1):
+    def build_up_test_values_parallel(self, c):
         queue = Queue()
-        # Step 1: Define prime K such that for some prime K p \equiv 1 \mod K'
-        k = self.k_calculator.calculate(self.n)
-        # Step 2: Define trial n, being a multiple of m, such that p = n^2m^2()gcd(p-1,"K)- have a good chance of being discovered
-        trial_n = self.n_calculator.calculate(self.n, self.m, k)
-        print("trial_n: " +  str(trial_n))
-        # Step 3. On each machine of m define an initial seed
-        process = [threading.Thread(target=compute_values, args=(queue, trial_n, self.n, k, a)) for _ in range(self.m)]
-        for t in process:
-            t.start()
-
-
-        saved_ys = []
-        saved_xs = []
-        for _ in process:
-            X, Y = queue.get()
-            saved_ys.append(Y)
-            saved_xs.append(X)
-        print("Adding stuff to list done")
-        saved_xs, saved_ys = np.array(saved_xs), np.array(saved_ys)
-        indexes = [(int(u * trial_n / self.m), int((((u + 1) * trial_n) / self.m) - 1)) for u in range(self.m)]
-        saved_args = [(saved_xs[index[0]:index[1]], saved_ys[index[0]:index[1]]) for index in indexes]
-        process = [threading.Thread(target=pollard_rho_parallel, args=(args[0], args[1], queue)) for args in saved_args]
+        all_Z = []
+        all_rows_in_binary_factor = []
+        all_rows_in_factor = []
+        size = math.ceil((len(self.B) + 1) / self.m)
+        process = [Process(target=build_up_congruence_values, args=(c, self.n, size, self.B, queue, i, self.m)) for i in
+                   range(self.m)]
         for t in process:
             t.start()
         for _ in process:
-            print("Retrieved from one list")
-            Q = queue.get()
-            p = math.gcd(Q % self.n, self.n)
-            if p != 1:
-                print("Are we here")
-                return p, int(self.n / p)
-        print("Test")
-        return self.factorize(a + 1)
+            Z, rows_in_factor, rows_in_binary_factor = queue.get()
+            all_Z.extend(Z)
+            all_rows_in_factor.extend(rows_in_factor)
+            all_rows_in_binary_factor.extend(rows_in_binary_factor)
+        return np.array(all_Z, dtype=object), np.array(all_rows_in_factor), np.array(all_rows_in_binary_factor)
+
+    def factorize(self, c=1):
+        print("start building up matrices")
+        start_time = int(round(time.time() * 1000))
+        Z, all_rows_in_factor, all_rows_in_binary_factor = self.build_up_test_values_parallel(c)
+        end_time = int(round(time.time() * 1000))
+        print("Building: " + str(end_time - start_time))
+        print("end building up matrices")
+        print("start echelon")
+        start_time = int(round(time.time() * 1000))
+        matrix, numpivots = reduced_row_echelon_form(all_rows_in_binary_factor.transpose())
+        end_time = int(round(time.time() * 1000))
+        print("Echelon: " + str(end_time - start_time))
+        print("start echelon")
+        print("stop echelon")
+        start_time = int(round(time.time() * 1000))
+        ones = np.array(
+            [[index for (index, bit) in enumerate(matrix[i, :]) if bit] for i in reversed(range(numpivots))])
+        print("ones")
+        p, q = factor_from_reduced_matrix(ones, self.test_congruence, Z, all_rows_in_factor, self.B, self.n)
+        end_time = int(round(time.time() * 1000))
+        print("Factor: " + str(end_time - start_time))
+        if p is not None and q is not None:
+            return p, q
+        return self.factorize(c + self.m)
