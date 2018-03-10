@@ -1,91 +1,151 @@
 import math
-
+import numpy as np
 import time
-from interface import implements
 
-from factorizer.dixon_random_squares.dixon_factor_base_prime import dixon_factor_base_prime
-from factorizer.quadratic_sieve.matrix_operations import solve_matrix_opt, build_index_matrix
-from factorizer.quadratic_sieve.rsa_quadratic_sieve import trial_divide, siqs_find_factors
+from interface import implements, Interface
+
 from factorizer.rsa_factorizer import rsa_factorizer
-from helper.cryptographic_methods import sqrt_int
+from helper.gaussian_elimination import reduced_row_echelon_form
 from helper.primes_sieve import primes_sieve
 
 
-def build_binary_matrix(factor_base, smooth_relations):
-    """Build the matrix for the linear algebra step of the Quadratic Sieve."""
-    fb = len(factor_base)
-    M = []
-    for sr in smooth_relations:
-        mi = [0] * fb
-        for j, exp in sr[1]:
-            mi[j] = exp % 2
-        M.append(mi)
-    return M
+def factorize_number_from_primes(number, primes):
+    factorized_number_binary_row = [0] * (len(primes))
+    factorized_number_row = [0] * (len(primes))
+    list_of_factors = []
+    current_factor_value = 1
+    for (index, prime) in enumerate(primes):
+        value = 1
 
 
-def siqs_find_factors(n, perfect_squares, smooth_relations, B):
-    for square_indices in perfect_squares:
-        fact = factor_from_square(n, square_indices, smooth_relations, B)
-        if fact != 1 and fact != n:
-            print("Found")
-            return fact, int(n / fact)
-        else:
-            print("Not found")
-    print("Recalculate")
+        while number % (prime ** value) == 0:
+            value += 1
+        exponent = value - 1
+        factorized_number_row[index] = exponent
+        if exponent != 0:
+            list_of_factors.append(number ** exponent)
+            factorized_number_binary_row[index] = exponent & 1 if number % prime == 0 else 0
+            current_factor_value = current_factor_value * (prime.item() ** exponent)
+            if current_factor_value == number:
+                return factorized_number_binary_row, factorized_number_row
     return None, None
 
 
-def calculate_prime_value(B, relations):
-    value = 1
-    for relation in relations:
-        value *= B[relation[0]].p ** relation[1]
-    return value
+def find_next_selection(row_ones, pointers):
+    if pointers is None or len(pointers) == 0:
+        return [], None
+    temp_pointers = list(pointers)
+    i = 0
+    while i != len(pointers):
+        is_in_the_begining_and_should_update = i == 0 and pointers[i] == len(row_ones) - 1
+        is_not_in_the_begining_and_should_update = pointers[i - 1] == pointers[i] + 1
+        if is_in_the_begining_and_should_update or is_not_in_the_begining_and_should_update:
+            i += 1
+            continue
+        pointers[i] += 1
+        for index in reversed(range(i)):
+            pointers[index] = pointers[index + 1] + 1
+        return row_ones[temp_pointers], pointers
+    return row_ones[temp_pointers], None
 
-def factor_from_square(n, square_indices, smooth_relations, B):
-    y = 1
-    z = 1
-    for indicies in square_indices:
-        smooth_relation = smooth_relations[indicies]
-        z *= smooth_relation[0]
-        for value in smooth_relation[1]:
-            y *= B[value[0]].p ** value[1]
-    y = sqrt_int(y) % n
-    z = z % n
 
-    return math.gcd(abs(z - y), n)
-
+def factor_from_reduced_matrix(ones, test_congruence, Z, all_rows_in_factor, B, n):
+    p, q = None, None
+    current_index = 0
+    forced_zeros = set()
+    reduced_ones = []
+    for one in ones:
+        if len(one) == 1:
+            forced_zeros.add(one[0])
+        else:
+            reduced_ones.append(one)
+    ones = reduced_ones
+    states = [[set(), set(), None, False] for _ in range(len(ones) + 1)]
+    states[0][0] = forced_zeros
+    while p is None and q is None:
+        if current_index == -1:
+            return None, None
+        if current_index == len(ones):
+            return test_congruence.validate(states[current_index][1], Z, all_rows_in_factor, B, n)
+        if not states[current_index][3]:
+            row_ones = np.array(ones[current_index])
+            ones_disjoint = np.array([one for one in row_ones if
+                                      one not in states[current_index][1] and one not in states[current_index][0]])
+            ones_intersect = states[current_index][1].intersection(row_ones)
+            pointers = states[current_index][2]
+            if pointers is None:
+                d = len(ones_disjoint) - 1 if len(ones_disjoint) & 1 else len(ones_disjoint)
+                if len(ones_intersect) & 1:
+                    d += 1
+                if d > len(ones_disjoint):
+                    d -= 2
+                pointers = [i for i in reversed(range(d))]
+            current_selection, pointers = find_next_selection(ones_disjoint, pointers)
+            if pointers is None:
+                if current_selection is None or len(current_selection) - 2 <= 0:
+                    states[current_index][3] = True
+                else:
+                    pointers = [i for i in reversed(range(len(current_selection) - 2))]
+            states[current_index][2] = pointers
+            difference_zeros = set(row_ones).difference(current_selection).difference(ones_intersect)
+            new_forced_zeros = states[current_index][0].union(difference_zeros)
+            new_forced_ones = states[current_index][1].union(current_selection)
+            current_index += 1
+            states[current_index][0] = new_forced_zeros
+            states[current_index][1] = new_forced_ones
+            states[current_index][3] = False
+            continue
+        current_index -= 1
+    return p, q
 
 class rsa_dixon_random_squares(implements(rsa_factorizer)):
-    def __init__(self, n, e):
+    def __init__(self, n, e, test_congruence):
+        self.test_congruence = test_congruence
         self.n = n
         self.e = e
-        k = int(0.5 * math.exp(math.sqrt(math.log1p(self.n) * math.log1p(math.log1p(self.n)))))
-        self.B = [dixon_factor_base_prime(p) for p in primes_sieve(k)]
+        k = int(math.exp(0.5 * math.sqrt(math.log1p(self.n) * math.log1p(math.log1p(self.n)))))
+        self.B = np.array(primes_sieve(k), dtype=int)
+        print(len(self.B))
+
 
     def build_up_test_values(self, c):
-        smooth_relations = []
+        Z = np.array([None] * (len(self.B) + 1))
+        all_rows_in_factor = [None] * (len(self.B) + 1)
+        all_rows_in_binary_factor = [None] * (len(self.B) + 1)
         j = 0
-        while len(smooth_relations) < (len(self.B) + 1):
-            j += 1
-            z = math.ceil(math.sqrt(j * self.n)) + c
-            number = z ** 2 % self.n
-            divisors_idx = trial_divide(number, self.B)
-            if divisors_idx is not None:
-                smooth_relations.append((z, divisors_idx))
-        return smooth_relations
+        i = 0
+        while i < len(self.B) + 1:
+            j = j + 1
+            Z[i] = math.ceil(math.sqrt(j * self.n)) + c
+            number = Z[i] ** 2 % self.n
+            factorized_binary_number_row, factorized_number_row = factorize_number_from_primes(number, self.B)
+            if factorized_number_row is not None:
+                all_rows_in_binary_factor[i] = factorized_binary_number_row
+                all_rows_in_factor[i] = factorized_number_row
+                i = i + 1
+        return Z, np.array(all_rows_in_binary_factor), np.array(all_rows_in_factor)
 
     def factorize(self, c=1):
+        print("start building up matrices")
         start_time = int(round(time.time() * 1000))
-        smooth_relations = self.build_up_test_values(c)
+        self.Z, self.all_rows_in_binary_factor, self.all_rows_in_factor = self.build_up_test_values(c)
         end_time = int(round(time.time() * 1000))
-        print(end_time - start_time)
+        print("Building: " + str(end_time - start_time))
+        print("end building up matrices")
+        print("start echelon")
         start_time = int(round(time.time() * 1000))
-        M = build_binary_matrix(self.B, smooth_relations)
+        matrix, numpivots = reduced_row_echelon_form(self.all_rows_in_binary_factor.transpose())
         end_time = int(round(time.time() * 1000))
-        print(end_time - start_time)
-        M_opt, M_n, M_m = build_index_matrix(M)
-        perfect_squares = solve_matrix_opt(M_opt, M_n, M_m)
-        p, q = siqs_find_factors(self.n, perfect_squares, smooth_relations, self.B)
+        print("Echelon: " + str(end_time - start_time))
+        print("start echelon")
+        print("stop echelon")
+        start_time = int(round(time.time() * 1000))
+        ones = np.array(
+            [[index for (index, bit) in enumerate(matrix[i, :]) if bit] for i in reversed(range(numpivots))])
+        print("ones")
+        p, q = factor_from_reduced_matrix(ones, self.test_congruence, self.Z, self.all_rows_in_factor, self.B, self.n)
+        end_time = int(round(time.time() * 1000))
+        print("Factor: " + str(end_time - start_time))
         if p is not None and q is not None:
             return p, q
         return self.factorize(c + 1)
