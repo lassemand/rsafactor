@@ -1,5 +1,5 @@
 #!/usr/bin/python3 -O
-
+import time
 from math import sqrt, log2, ceil
 import random
 
@@ -7,13 +7,14 @@ import math
 from interface import implements
 
 from factorizer.quadratic_sieve.factor_base_prime import factor_base_prime
-from factorizer.quadratic_sieve.matrix_operations import siqs_build_matrix, siqs_build_matrix_opt, siqs_solve_matrix_opt
+from factorizer.quadratic_sieve.matrix_operations import build_binary_matrix, build_index_matrix, solve_matrix_opt
 from factorizer.quadratic_sieve.polynomial import polynomial
 from factorizer.rsa_factorizer import rsa_factorizer
 from helper.cryptographic_methods import is_quadratic_residue, modular_square_root, inv_mod, lowest_set_bit, \
     is_probable_prime, sqrt_int, choose_nf_m
 from helper.primes_sieve import primes_sieve
 
+# TODO: THIS VALUE SHOULD BE DYNAMIC
 TRIAL_DIVISION_EPS = 20
 MIN_PRIME_POLYNOMIAL = 400
 MAX_PRIME_POLYNOMIAL = 4000
@@ -201,14 +202,13 @@ def siqs_calc_sqrts(square_indices, smooth_relations):
     return res
 
 
-def siqs_factor_from_square(n, square_indices, smooth_relations):
+def factor_from_square(n, square_indices, smooth_relations):
     """Given one of the solutions returned by siqs_solve_matrix_opt,
     return the factor f determined by f = gcd(a - b, n), where
     a, b are calculated from the solution such that a*a = b*b (mod n).
     Return f, a factor of n (possibly a trivial one).
     """
     sqrt1, sqrt2 = siqs_calc_sqrts(square_indices, smooth_relations)
-    assert (sqrt1 * sqrt1) % n == (sqrt2 * sqrt2) % n
     return math.gcd(abs(sqrt1 - sqrt2), n)
 
 
@@ -218,46 +218,11 @@ def siqs_find_factors(n, perfect_squares, smooth_relations):
     identify a number of (not necessarily prime) factors of n, and
     return them.
     """
-    factors = []
-    rem = n
-    non_prime_factors = set()
-    prime_factors = set()
     for square_indices in perfect_squares:
-        fact = siqs_factor_from_square(n, square_indices, smooth_relations)
-        if fact != 1 and fact != rem:
-            if is_probable_prime(fact):
-                if fact not in prime_factors:
-                    print("SIQS: Prime factor found: %d" % fact)
-                    prime_factors.add(fact)
-
-                while rem % fact == 0:
-                    factors.append(fact)
-                    rem //= fact
-
-                if rem == 1:
-                    break
-                if is_probable_prime(rem):
-                    factors.append(rem)
-                    rem = 1
-                    break
-            else:
-                if fact not in non_prime_factors:
-                    print("SIQS: Non-prime factor found: %d" % fact)
-                    non_prime_factors.add(fact)
-
-    if rem != 1 and non_prime_factors:
-        non_prime_factors.add(rem)
-        for fact in sorted(siqs_find_more_factors_gcd(non_prime_factors)):
-            while fact != 1 and rem % fact == 0:
-                print("SIQS: Prime factor found: %d" % fact)
-                factors.append(fact)
-                rem //= fact
-            if rem == 1 or is_probable_prime(rem):
-                break
-
-    if rem != 1:
-        factors.append(rem)
-    return factors
+        fact = factor_from_square(n, square_indices, smooth_relations)
+        if fact != 1:
+            return fact, int(n / fact)
+    return None, None
 
 
 def siqs_find_more_factors_gcd(numbers):
@@ -282,56 +247,51 @@ class rsa_quadratic_sieve(implements(rsa_factorizer)):
         self.e = e
         self.y = int(math.exp(0.5 * math.sqrt(math.log1p(self.n) * math.log1p(math.log1p(self.n)))))
 
+    def find_smooth_relations(self, factor_base, required_congruence_ratio, smooth_relations, m, i_poly):
+        print("*** Step 1/2: Finding smooth relations ***")
+        required_relations = round(len(factor_base) * required_congruence_ratio)
+        enough_relations = False
+        while not enough_relations:
+            if i_poly == 0:
+                g, h, B = find_first_polynomial(self.n, m, factor_base)
+            else:
+                g, h = siqs_find_next_poly(self.n, factor_base, i_poly, g, B)
+            i_poly += 1
+            if i_poly >= 2 ** (len(B) - 1):
+                i_poly = 0
+            sieve_array = sieve_factor_base(factor_base, m)
+            enough_relations = trial_division(
+                self.n, sieve_array, factor_base, smooth_relations,
+                g, h, m, required_relations)
+
+
+    def linear_algebra(self, smooth_relations, factor_base):
+        M = build_binary_matrix(factor_base, smooth_relations)
+        M_opt, M_n, M_m = build_index_matrix(M)
+        perfect_squares = solve_matrix_opt(M_opt, M_n, M_m)
+        return siqs_find_factors(self.n, perfect_squares, smooth_relations)
+
     def factorize(self):
         global small_primes
-        """Factorise the given integer n >= 1 into its prime factors."""
         small_primes = primes_sieve(self.y)
         dig = len(str(self.n))
         nf, m = choose_nf_m(dig)
-
         factor_base = factor_base_primes(self.n, nf)
-
         required_congruence_ratio = 1.05
         success = False
         smooth_relations = []
-        prev_cnt = 0
         i_poly = 0
         while not success:
-            print("*** Step 1/2: Finding smooth relations ***")
-            required_relations = round(len(factor_base) * required_congruence_ratio)
-            print("Target: %d relations" % required_relations)
-            enough_relations = False
-            while not enough_relations:
-                if i_poly == 0:
-                    g, h, B = find_first_polynomial(self.n, m, factor_base)
-                else:
-                    g, h = siqs_find_next_poly(self.n, factor_base, i_poly, g, B)
-                i_poly += 1
-                if i_poly >= 2 ** (len(B) - 1):
-                    i_poly = 0
-                sieve_array = sieve_factor_base(factor_base, m)
-                enough_relations = trial_division(
-                    self.n, sieve_array, factor_base, smooth_relations,
-                    g, h, m, required_relations)
-
-                if (len(smooth_relations) >= required_relations or
-                                    i_poly % 8 == 0 and len(smooth_relations) > prev_cnt):
-                    print("Total %d/%d relations." %
-                          (len(smooth_relations), required_relations))
-                    prev_cnt = len(smooth_relations)
-
-            print("*** Step 2/2: Linear Algebra ***")
-            print("Building matrix for linear algebra step...")
-            M = siqs_build_matrix(factor_base, smooth_relations)
-            M_opt, M_n, M_m = siqs_build_matrix_opt(M)
-
-            print("Finding perfect squares using matrix...")
-            perfect_squares = siqs_solve_matrix_opt(M_opt, M_n, M_m)
-
-            print("Finding factors from perfect squares...")
-            factors = siqs_find_factors(self.n, perfect_squares, smooth_relations)
-            if len(factors) == 1:
+            start_time = int(round(time.time() * 1000))
+            self.find_smooth_relations(factor_base, required_congruence_ratio, smooth_relations, m, i_poly)
+            end_time = int(round(time.time() * 1000))
+            print("Smooth_relations: " + str(end_time - start_time))
+            start_time = int(round(time.time() * 1000))
+            p, q = self.linear_algebra(smooth_relations, factor_base)
+            end_time = int(round(time.time() * 1000))
+            print("Linear Algebra: " + str(end_time - start_time))
+            if p is None or q is None:
                 print("Failed to find a solution. Finding more relations...")
                 required_congruence_ratio += 0.05
-
-            return factors[0], int(self.n / factors[0])
+            else:
+                return p, q

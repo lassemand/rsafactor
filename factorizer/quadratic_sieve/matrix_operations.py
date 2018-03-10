@@ -1,7 +1,7 @@
 from helper.cryptographic_methods import lowest_set_bit
 
 
-def siqs_build_matrix(factor_base, smooth_relations):
+def build_binary_matrix(factor_base, smooth_relations):
     """Build the matrix for the linear algebra step of the Quadratic Sieve."""
     fb = len(factor_base)
     M = []
@@ -13,18 +13,16 @@ def siqs_build_matrix(factor_base, smooth_relations):
     return M
 
 
-def siqs_build_matrix_opt(M):
+def build_index_matrix(M):
     """Convert the given matrix M of 0s and 1s into a list of numbers m
     that correspond to the columns of the matrix.
     The j-th number encodes the j-th column of matrix M in binary:
     The i-th bit of m[i] is equal to M[i][j].
     """
-    # TODO: Use StringBuilder
     m = len(M[0])
-    cols_binary = [""] * m
-    for mi in M:
-        for j, mij in enumerate(mi):
-            cols_binary[j] += "1" if mij else "0"
+    cols_binary = [''] * m
+    for i in range(m):
+        cols_binary[i] = cols_binary[i].join(['1' if M[j][i] else '0' for j in range(len(M))])
     return [int(cols_bin[::-1], 2) for cols_bin in cols_binary], len(M), m
 
 
@@ -44,7 +42,7 @@ def find_pivot_column_opt(M_opt, j):
     return lowest_set_bit(M_opt[j])
 
 
-def siqs_solve_matrix_opt(M_opt, n, m):
+def solve_matrix_opt(M_opt, n, m):
     """
     Perform the linear algebra step of the SIQS. Perform fast
     Gaussian elimination to determine pairs of perfect squares mod n.

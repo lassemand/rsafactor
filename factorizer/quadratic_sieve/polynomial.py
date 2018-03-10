@@ -8,7 +8,7 @@ class polynomial:
 
     def eval(self, x):
         res = 0
-        for a in self.coeff[::-1]:
+        for a in reversed(self.coeff):
             res *= x
             res += a
         return res

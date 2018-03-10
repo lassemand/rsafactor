@@ -24,7 +24,7 @@ def generate_factorizer(bits, method, processes):
         'brent_pollard_rho': rsa_brent_pollard_rho(pubkey.n, pubkey.e),
         'pollard_rho_parallel': rsa_pollard_rho_parallel(pubkey.n, pubkey.e, processes, basic_k_calculator(), advanced_n_calculator()),
         'pollard_rho_parallel_independent': rsa_pollard_rho_parallel_independent(pubkey.n, pubkey.e),
-        'dixon_random_square': rsa_dixon_random_squares(pubkey.n, pubkey.e, rsa_dixon_random_squares_test_congruence()),
+        'dixon_random_square': rsa_dixon_random_squares(pubkey.n, pubkey.e),
         'dixon_random_square_parallel': rsa_dixon_random_squares_parallel(pubkey.n, pubkey.e, processes, rsa_dixon_random_squares_test_congruence()),
         'quadratic_sieve': rsa_quadratic_sieve(pubkey.n, pubkey.e),
     }[method]

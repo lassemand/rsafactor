@@ -29,14 +29,6 @@ class TestFactorizer(unittest.TestCase):
         self.assertEqual(q, privkey.q)
 
 
-    def test_dixon_random_squares(self):
-        (pubkey, privkey) = rsa.newkeys(32)
-        sut = rsa_dixon_random_squares(pubkey.n, pubkey.e)
-        (p, q) = sut.factorize()
-        if p == privkey.q:
-            p, q = q, p
-        self.assertEqual(p, privkey.p)
-        self.assertEqual(q, privkey.q)
 
     def test_factorize_number_from_prrimes(self):
         (result, none_binary_result) = factorize_number_from_primes(65, [2, 3, 5, 7, 11, 13], 1829)
