@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 
 from helper.gaussian_elimination import reduced_row_echelon_form
+from helper.primes_sieve import seg_sieve_primes, primes_sieve
 
 
 class TestGaussian(unittest.TestCase):
@@ -34,6 +35,15 @@ class TestGaussian(unittest.TestCase):
                                                         [0, 0, 0, 0, 0, 1, 0, 0],
                                                         ])))
         self.assertEqual(5, numpivots)
+
+
+    def test_seg_prime_sieve(self):
+        result = seg_sieve_primes((1, 2001))
+        self.assertEqual(5, len(result))
+
+    def test_prime_sieve(self):
+        result = primes_sieve(11)
+        self.assertEqual(5, len(result))
 
 if __name__ == '__main__':
     unittest.main()
