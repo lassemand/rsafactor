@@ -13,6 +13,7 @@ from factorizer.pollard_rho.rsa_pollard_rho import rsa_pollard_rho
 from factorizer.pollard_rho.rsa_pollard_rho_parallel import rsa_pollard_rho_parallel
 from factorizer.pollard_rho.rsa_pollard_rho_parallel_independent import rsa_pollard_rho_parallel_independent
 from factorizer.quadratic_sieve.rsa_quadratic_sieve import rsa_quadratic_sieve
+from factorizer.quadratic_sieve.rsa_quadratic_sieve_parallel import rsa_quadratic_sieve_parallel
 from factorizer.rsa_brute_force import rsa_brute_force
 
 
@@ -22,11 +23,12 @@ def generate_factorizer(bits, method, processes):
         'brute_force': rsa_brute_force(pubkey.n, pubkey.e),
         'pollard_rho': rsa_pollard_rho(pubkey.n, pubkey.e),
         'brent_pollard_rho': rsa_brent_pollard_rho(pubkey.n, pubkey.e),
-        'pollard_rho_parallel': rsa_pollard_rho_parallel(pubkey.n, pubkey.e, processes, basic_k_calculator(), advanced_n_calculator()),
+        'pollard_rho_parallel': rsa_pollard_rho_parallel(pubkey.n, pubkey.e, processes, basic_k_calculator(), advanced_n_calculator(bits)),
         'pollard_rho_parallel_independent': rsa_pollard_rho_parallel_independent(pubkey.n, pubkey.e),
-        'dixon_random_square': rsa_dixon_random_squares(pubkey.n, pubkey.e),
+        'dixon_random_square': rsa_dixon_random_squares(pubkey.n, pubkey.e, rsa_dixon_random_squares_test_congruence()),
         'dixon_random_square_parallel': rsa_dixon_random_squares_parallel(pubkey.n, pubkey.e, processes, rsa_dixon_random_squares_test_congruence()),
         'quadratic_sieve': rsa_quadratic_sieve(pubkey.n, pubkey.e),
+        'quadratic_sieve_parallel': rsa_quadratic_sieve_parallel(pubkey.n, pubkey.e, processes),
     }[method]
 
 def generate_factorizers_dict(bits_list, method, processes):
@@ -38,9 +40,11 @@ def generate_factorizers_dict(bits_list, method, processes):
 
 class basic_k_calculator(implements(k_calculator)):
     def calculate(self, n):
-        return 20
+        return 1
 
 
 class advanced_n_calculator(implements(n_calculator)):
+    def __init__(self, k):
+        self.k = k
     def calculate(self, n, m, k):
-        return int(math.sqrt(n) / (math.sqrt(2) * m * 1000))
+        return int(math.sqrt(2^(self.k/2)/m))

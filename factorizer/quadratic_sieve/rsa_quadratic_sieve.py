@@ -21,11 +21,10 @@ MAX_PRIME_POLYNOMIAL = 4000
 SMALLEST_PRIME_TO_BE_IN_SIEVE = 20
 
 
-def factor_base_primes(n, nf):
+def factor_base_primes(n, nf, small_primes):
     """Compute and return nf factor base primes suitable for a Quadratic
     Sieve on the number n.
     """
-    global small_primes
     factor_base = []
     for p in small_primes:
         if is_quadratic_residue(n, p):
@@ -225,6 +224,13 @@ def siqs_find_factors(n, perfect_squares, smooth_relations):
     return None, None
 
 
+def linear_algebra(smooth_relations, factor_base, n):
+    M = build_binary_matrix(factor_base, smooth_relations)
+    M_opt, M_n, M_m = build_index_matrix(M)
+    perfect_squares = solve_matrix_opt(M_opt, M_n, M_m)
+    return siqs_find_factors(n, perfect_squares, smooth_relations)
+
+
 def siqs_find_more_factors_gcd(numbers):
     res = set()
     for n in numbers:
@@ -241,53 +247,53 @@ def siqs_find_more_factors_gcd(numbers):
     return res
 
 
+def find_smooth_relations(factor_base, required_congruence_ratio, smooth_relations, m, i_poly, n):
+    print("*** Step 1/2: Finding smooth relations ***")
+    required_relations = round(len(factor_base) * required_congruence_ratio)
+    enough_relations = False
+    while not enough_relations:
+        if i_poly == 0:
+            g, h, B = find_first_polynomial(n, m, factor_base)
+        else:
+            g, h = siqs_find_next_poly(n, factor_base, i_poly, g, B)
+        i_poly += 1
+        if i_poly >= 2 ** (len(B) - 1):
+            i_poly = 0
+
+        start_time = int(round(time.time() * 1000))
+        sieve_array = sieve_factor_base(factor_base, m)
+        end_time = int(round(time.time() * 1000))
+        print("Sieve array: " + str(end_time - start_time))
+        start_time = int(round(time.time() * 1000))
+        enough_relations = trial_division(
+            n, sieve_array, factor_base, smooth_relations,
+            g, h, m, required_relations)
+        end_time = int(round(time.time() * 1000))
+        print("Trial division: " + str(end_time - start_time))
+
+
 class rsa_quadratic_sieve(implements(rsa_factorizer)):
     def __init__(self, n, e):
         self.n = n
         self.e = e
         self.y = int(math.exp(0.5 * math.sqrt(math.log1p(self.n) * math.log1p(math.log1p(self.n)))))
 
-    def find_smooth_relations(self, factor_base, required_congruence_ratio, smooth_relations, m, i_poly):
-        print("*** Step 1/2: Finding smooth relations ***")
-        required_relations = round(len(factor_base) * required_congruence_ratio)
-        enough_relations = False
-        while not enough_relations:
-            if i_poly == 0:
-                g, h, B = find_first_polynomial(self.n, m, factor_base)
-            else:
-                g, h = siqs_find_next_poly(self.n, factor_base, i_poly, g, B)
-            i_poly += 1
-            if i_poly >= 2 ** (len(B) - 1):
-                i_poly = 0
-            sieve_array = sieve_factor_base(factor_base, m)
-            enough_relations = trial_division(
-                self.n, sieve_array, factor_base, smooth_relations,
-                g, h, m, required_relations)
-
-
-    def linear_algebra(self, smooth_relations, factor_base):
-        M = build_binary_matrix(factor_base, smooth_relations)
-        M_opt, M_n, M_m = build_index_matrix(M)
-        perfect_squares = solve_matrix_opt(M_opt, M_n, M_m)
-        return siqs_find_factors(self.n, perfect_squares, smooth_relations)
-
     def factorize(self):
-        global small_primes
         small_primes = primes_sieve(self.y)
         dig = len(str(self.n))
         nf, m = choose_nf_m(dig)
-        factor_base = factor_base_primes(self.n, nf)
+        factor_base = factor_base_primes(self.n, nf, small_primes)
         required_congruence_ratio = 1.05
         success = False
         smooth_relations = []
         i_poly = 0
         while not success:
             start_time = int(round(time.time() * 1000))
-            self.find_smooth_relations(factor_base, required_congruence_ratio, smooth_relations, m, i_poly)
+            find_smooth_relations(factor_base, required_congruence_ratio, smooth_relations, m, i_poly, self.n)
             end_time = int(round(time.time() * 1000))
             print("Smooth_relations: " + str(end_time - start_time))
             start_time = int(round(time.time() * 1000))
-            p, q = self.linear_algebra(smooth_relations, factor_base)
+            p, q = linear_algebra(smooth_relations, factor_base, self.n)
             end_time = int(round(time.time() * 1000))
             print("Linear Algebra: " + str(end_time - start_time))
             if p is None or q is None:

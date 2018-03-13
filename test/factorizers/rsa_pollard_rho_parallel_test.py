@@ -5,8 +5,7 @@ import numpy as np
 
 from factorizer.pollard_rho.k_calculator import k_calculator
 from factorizer.pollard_rho.n_calculator import n_calculator
-from factorizer.pollard_rho.rsa_pollard_rho_parallel import rsa_pollard_rho_parallel, pollard_rho_parallel, \
-    compute_values
+from factorizer.pollard_rho.rsa_pollard_rho_parallel import rsa_pollard_rho_parallel, compute_values, correlation_product
 
 from multiprocessing import Queue
 
@@ -22,7 +21,7 @@ class rsa_pollard_rho_parallel_test(unittest.TestCase):
         queue = Queue()
         xs = np.array([[4,3], [5,2]])
         ys = np.array([[7,6], [7,6]])
-        pollard_rho_parallel(xs, ys, queue)
+        correlation_product(xs, ys, queue)
         Q = queue.get()
         self.assertEqual(2880, Q)
 

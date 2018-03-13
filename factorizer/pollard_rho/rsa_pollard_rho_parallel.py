@@ -23,15 +23,23 @@ def compute_values(queue, trial_n, n, k, a):
     print("One thread done")
     queue.put((X, Y))
 
-def pollard_rho_parallel(xs, ys, queue):
+
+def correlation_product(xs, ys, queue):
     Q = 1
     for i in range(len(xs)):
-        X = xs[i]
-        Y = ys[i]
-        for y in Y:
-            for x in X:
-                Q *= y - x
+        results = []
+        for x in xs[i]:
+            results.append(ys[i]-x)
+
+        Q *= np.prod(np.polyval(ys[i], -xs[i]))
     queue.put(Q)
+
+def eval(x, T, delta=4):
+    d = len(x)
+    if len(T) <= delta:
+        return (x)
+
+
 
 
 class rsa_pollard_rho_parallel(implements(rsa_factorizer)):
@@ -41,6 +49,7 @@ class rsa_pollard_rho_parallel(implements(rsa_factorizer)):
         self.m = m
         self.k_calculator = k_calculator
         self.n_calculator = n_calculator
+
 
 
     def factorize(self, a=1):
@@ -66,7 +75,7 @@ class rsa_pollard_rho_parallel(implements(rsa_factorizer)):
         saved_xs, saved_ys = np.array(saved_xs), np.array(saved_ys)
         indexes = [(int(u * trial_n / self.m), int((((u + 1) * trial_n) / self.m) - 1)) for u in range(self.m)]
         saved_args = [(saved_xs[index[0]:index[1]], saved_ys[index[0]:index[1]]) for index in indexes]
-        process = [threading.Thread(target=pollard_rho_parallel, args=(args[0], args[1], queue)) for args in saved_args]
+        process = [threading.Thread(target=correlation_product, args=(args[0], args[1], queue)) for args in saved_args]
         for t in process:
             t.start()
         for _ in process:
