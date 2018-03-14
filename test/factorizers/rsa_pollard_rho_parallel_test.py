@@ -21,7 +21,7 @@ class rsa_pollard_rho_parallel_test(unittest.TestCase):
         queue = Queue()
         xs = np.array([[4,3], [5,2]])
         ys = np.array([[7,6], [7,6]])
-        correlation_product(xs, ys, queue)
+        correlation_product(xs, ys, queue, 2881)
         Q = queue.get()
         self.assertEqual(2880, Q)
 

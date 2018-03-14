@@ -47,4 +47,4 @@ class advanced_n_calculator(implements(n_calculator)):
     def __init__(self, k):
         self.k = k
     def calculate(self, n, m, k):
-        return int(math.sqrt(2^(self.k/2)/m))
+        return int(math.sqrt(2**(self.k/2)/m))

@@ -16,12 +16,14 @@ class rsa_pollard_rho(implements(rsa_factorizer)):
         x = random.randint(2, self.n - 1)
         y = f(x) % self.n
         p = 1
+        c = 0
         while p == 1:
+            c += 1
             x = f(x) % self.n
             y = f(f(y)) % self.n
             p = math.gcd((x - y) % self.n, self.n)
             if p == self.n:
                 return self.factorize(f)
-        print(self.i)
+        print(c)
         return p, int(self.n / p)
 
