@@ -9,8 +9,7 @@ from multiprocessing import Queue, Process, Semaphore
 from helper.polynomial_builder import build_poly, polyval
 
 
-def compute_values(trial_n, n, k, a, i, semaphore):
-    global xs, ys
+def compute_values(trial_n, n, k, a):
     f = lambda u: (u ** (2 * k) + a) % n
     X = []
     Y = []
@@ -21,10 +20,8 @@ def compute_values(trial_n, n, k, a, i, semaphore):
         y = f(f(y))
         X.append(x)
         Y.append(y)
-    semaphore.acquire()
-    xs[i].extend(X)
-    ys[i].extend(Y)
-    semaphore.release()
+    return X, Y
+
 
 def correlation_product(xs, ys, queue, n):
     Q = 1
