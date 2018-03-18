@@ -17,7 +17,6 @@ def factorize_number_from_primes(number, primes):
     for (index, prime) in enumerate(primes):
         value = 1
 
-
         while number % (prime ** value) == 0:
             value += 1
         exponent = value - 1
@@ -98,6 +97,7 @@ def factor_from_reduced_matrix(ones, test_congruence, Z, all_rows_in_factor, B, 
         current_index -= 1
     return p, q
 
+
 class rsa_dixon_random_squares(implements(rsa_factorizer)):
     def __init__(self, n, e, test_congruence):
         self.test_congruence = test_congruence
@@ -106,7 +106,6 @@ class rsa_dixon_random_squares(implements(rsa_factorizer)):
         k = int(math.exp(0.5 * math.sqrt(math.log1p(self.n) * math.log1p(math.log1p(self.n)))))
         self.B = np.array(primes_sieve(k), dtype=int)
         print(len(self.B))
-
 
     def build_up_test_values(self, c):
         Z = np.array([None] * (len(self.B) + 1))
