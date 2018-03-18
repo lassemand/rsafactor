@@ -10,13 +10,13 @@ if __name__ == "__main__":
 
     def callback(ch, method, properties, body):
         data = json.loads(body)
-        body.pop('ips', None)
-        for ip in data['ips']:
+        list_of_ips = data.pop('ips')
+        for ip in list_of_ips:
             connection = pika.BlockingConnection(pika.ConnectionParameters(host=ip))
             channel = connection.channel()
             channel.basic_publish(exchange='',
                                   routing_key='pollard_rho_parallel_worker',
-                                  body=body)
+                                  body=json.dumps(data))
         print("Server received %r" % body)
 
     channel.basic_consume(callback,

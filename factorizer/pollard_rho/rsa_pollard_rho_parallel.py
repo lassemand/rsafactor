@@ -3,6 +3,7 @@ import random
 
 from interface import implements
 
+from factorizer.pollard_rho.rsa_pollard_rho_parallel_client import initiate_pollard_rho_parallel
 from factorizer.rsa_factorizer import rsa_factorizer
 from multiprocessing import Queue, Process, Semaphore
 
@@ -35,12 +36,14 @@ def correlation_product(xs, ys, queue, n):
 
 
 class rsa_pollard_rho_parallel(implements(rsa_factorizer)):
-    def __init__(self, n, e, m, k_calculator, n_calculator):
+    def __init__(self, n, e, m, k_calculator, n_calculator, worker_ips, server_ip):
         self.n = n
         self.e = e
         self.m = m
         self.k_calculator = k_calculator
         self.n_calculator = n_calculator
+        self.worker_ips = worker_ips
+        self.server_ip = server_ip
 
 
 
@@ -54,24 +57,19 @@ class rsa_pollard_rho_parallel(implements(rsa_factorizer)):
         # Step 3. On each machine of m define an initial seed
         xs = [[] for _ in range(self.m)]
         ys = [[] for _ in range(self.m)]
-        semaphore = Semaphore(1)
-        process = [Process(target=compute_values, args=(trial_n, self.n, k, a, i, semaphore)) for i in range(self.m)]
-        for t in process:
-            t.start()
+        initiate_pollard_rho_parallel(trial_n, self.n, k, a, [self.worker_ips], self.server_ip)
+        return 1, 1
 
-        for t in process:
-            t.join()
-        print("done building up sums")
-        indexes = [((u * trial_n) // self.m, (((u + 1) * trial_n) // self.m) - 1) for u in range(self.m)]
-        saved_args = [(xs[index[0]:index[1]], xs[index[0]:index[1]]) for index in indexes]
-        process = [Process(target=correlation_product, args=(args[0], args[1], queue, self.n)) for args in saved_args]
-        for t in process:
-            t.start()
-        for _ in process:
-            Q = queue.get()
-            p = math.gcd(Q, self.n)
-            if p != 1:
-                print("failed")
-                return p, int(self.n / p)
-        print("succeded")
-        return self.factorize(a + 1)
+#        indexes = [((u * trial_n) // self.m, (((u + 1) * trial_n) // self.m) - 1) for u in range(self.m)]
+#        saved_args = [(xs[index[0]:index[1]], xs[index[0]:index[1]]) for index in indexes]
+#        process = [Process(target=correlation_product, args=(args[0], args[1], queue, self.n)) for args in saved_args]
+#        for t in process:
+#            t.start()
+#        for _ in process:
+#            Q = queue.get()
+#            p = math.gcd(Q, self.n)
+#            if p != 1:
+#                print("failed")
+#                return p, int(self.n / p)
+#        print("succeded")
+#        return self.factorize(a + 0)
