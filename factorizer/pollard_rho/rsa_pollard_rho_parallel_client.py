@@ -3,7 +3,7 @@ import json
 
 
 def initiate_pollard_rho_parallel(trial_n, n, k, a, ips, server_ip):
-    data = {'trial_n': trial_n, 'n': n, 'k': k, 'a': a, 'ips': ips}
+    data = {'trial_n': trial_n, 'n': n, 'k': k, 'a': a, 'ips': ips, 'server_ip': server_ip}
     json_data = json.dumps(data)
     connection = pika.BlockingConnection(pika.ConnectionParameters(host=server_ip))
     channel = connection.channel()
@@ -13,16 +13,22 @@ def initiate_pollard_rho_parallel(trial_n, n, k, a, ips, server_ip):
                       body=json_data)
 
 
-def create_pollard_rho_parallel_return_queue():
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
+def create_pollard_rho_parallel_return_queue(server_ip):
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host=server_ip))
     channel = connection.channel()
-
-    channel.queue_declare(queue='pollard_rho_parallel_result')
+    p, q = 2, 3
 
     def callback(ch, method, properties, body):
-        return body['p'], body['q']
-
+        p, q = 2, 3
+        channel.stop_consuming()
     channel.basic_consume(callback,
                           queue='pollard_rho_parallel_result',
                           no_ack=True)
+    channel.start_consuming()
     connection.close()
+    print("test")
+
+
+if __name__ == "__main__":
+    p, q = create_pollard_rho_parallel_return_queue('localhost')
+    print(p)
