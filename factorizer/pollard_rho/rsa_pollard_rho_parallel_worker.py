@@ -107,7 +107,7 @@ def compute_q_callback(ch, method, properties, body):
 
 
 if __name__ == "__main__":
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host='167.99.85.42'))
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
     channel = connection.channel()
 
     channel.queue_declare(queue='pollard_rho_parallel_worker_setup')
