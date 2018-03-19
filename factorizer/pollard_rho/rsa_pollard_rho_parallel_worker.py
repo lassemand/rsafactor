@@ -68,6 +68,7 @@ def correlation_product(xs, ys):
             Q *= polyval(polynomial, x)
     return Q
 
+
 def compute_values_callback(ch, method, properties, body):
     print("compute_values_callback")
     data = json.loads(body)
@@ -76,6 +77,7 @@ def compute_values_callback(ch, method, properties, body):
     channel = connection.channel()
     data['X'] = X
     data['Y'] = Y
+    print("trial_n: " + str(len(X)))
     channel.basic_publish(exchange='', routing_key='pollard_rho_parallel_setup',
                           properties=pika.BasicProperties(
                               headers={'correlation_id': properties.headers['correlation_id']}
@@ -87,6 +89,9 @@ def compute_values_callback(ch, method, properties, body):
 def compute_q_callback(ch, method, properties, body):
     print("compute_q_callback")
     data = json.loads(body)
+    print("trial_n / m: " + str(len(data['X'])))
+    print("m: " + str(len(data['X'][0])))
+
     Q = correlation_product(data['X'], data['Y']) % data['n']
     p = math.gcd(Q, data['n'])
     data['p'] = p

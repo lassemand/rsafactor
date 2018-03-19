@@ -46,6 +46,8 @@ def callback_setup_pollard_rho(ch, method, properties, body):
     if len(processed_X[0]) != m:
         return
     indexes = [((u * data['trial_n']) // m, (((u + 1) * data['trial_n']) // m) - 1) for u in range(m)]
+    print("trial_n: " + str(data['trial_n']))
+    print("m: " + str(len(data['ips'])))
     saved_args = [(processed_X[index[0]:index[1]], processed_Y[index[0]:index[1]]) for index in indexes]
     for (index, ip) in enumerate(data['ips']):
         data_to_be_processed = saved_args[index]
