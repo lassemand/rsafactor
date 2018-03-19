@@ -70,6 +70,7 @@ def correlation_product(xs, ys):
 
 def compute_values_callback(ch, method, properties, body):
     print("compute_values_callback")
+    print(body)
     data = json.loads(body)
     X, Y = compute_values(data['trial_n'], data['n'], data['k'], data['a'])
     connection = pika.BlockingConnection(pika.ConnectionParameters(host=data['server_ip']))
@@ -86,6 +87,7 @@ def compute_values_callback(ch, method, properties, body):
 
 def compute_q_callback(ch, method, properties, body):
     print("compute_q_callback")
+    print(body)
     data = json.loads(body)
     Q = correlation_product(data['X'], data['Y']) % data['n']
     p = math.gcd(Q, data['n'])
@@ -102,7 +104,7 @@ def compute_q_callback(ch, method, properties, body):
 
 
 if __name__ == "__main__":
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host='167.99.85.42'))
     channel = connection.channel()
 
     channel.queue_declare(queue='pollard_rho_parallel_worker_setup')
