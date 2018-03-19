@@ -47,6 +47,7 @@ def polyval(p, x):
 
 
 def compute_values(trial_n, n, k, a):
+    print("a: " + str(a))
     f = lambda u: (u ** (2 * k) + a) % n
     X = []
     Y = []
@@ -89,11 +90,10 @@ def compute_values_callback(ch, method, properties, body):
 def compute_q_callback(ch, method, properties, body):
     print("compute_q_callback")
     data = json.loads(body)
-    print("trial_n / m: " + str(len(data['X'])))
-    print("m: " + str(len(data['X'][0])))
-
     Q = correlation_product(data['X'], data['Y']) % data['n']
+    print("Q: " + str(Q))
     p = math.gcd(Q, data['n'])
+    print("p: " + str(p))
     data['p'] = p
     connection = pika.BlockingConnection(pika.ConnectionParameters(host=data['server_ip']))
     channel = connection.channel()
