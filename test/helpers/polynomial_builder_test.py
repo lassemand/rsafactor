@@ -1,7 +1,8 @@
 import unittest
 
-from helper.polynomial_builder import build_poly
 import numpy as np
+
+from factorizer.pollard_rho.polynomial_builder import build_poly
 
 
 class TestPolynomialBuiler(unittest.TestCase):
