@@ -39,7 +39,7 @@ def create_pollard_rho_parallel_return_queue(server_ip):
         else:
             number_of_trials[correlation_id] += 1
             if len(data['ips']) == number_of_trials[correlation_id]:
-                initiate_pollard_rho_parallel(data['trial_n'], data['n'], 1, [data['a'] + 1], data['ips'], data['server_ip'])
+                initiate_pollard_rho_parallel(data['trial_n'], data['n'], 1, data['a'] + 1, data['ips'], data['server_ip'])
 
     channel.basic_consume(callback,
                           queue='pollard_rho_parallel_result',
