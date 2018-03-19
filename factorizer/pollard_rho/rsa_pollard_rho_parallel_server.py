@@ -17,6 +17,7 @@ def callback_pollard_rho(ch, method, properties, body):
     processed_ids.add(correlation_id)
     data = json.loads(body)
     for ip in data['ips']:
+        print("sent message to: " + ip)
         connection = pika.BlockingConnection(pika.ConnectionParameters(host=ip))
         channel = connection.channel()
         channel.basic_publish(exchange='',
