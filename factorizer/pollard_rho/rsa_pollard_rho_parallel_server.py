@@ -16,8 +16,6 @@ def callback_pollard_rho(ch, method, properties, body):
         return
     processed_ids.add(correlation_id)
     data = json.loads(body)
-    processed_Xs[correlation_id] = [[] for _ in range(data['trial_n'])]
-    processed_Ys[correlation_id] = [[] for _ in range(data['trial_n'])]
     for ip in data['ips']:
         connection = pika.BlockingConnection(pika.ConnectionParameters(host=ip))
         channel = connection.channel()
@@ -26,8 +24,10 @@ def callback_pollard_rho(ch, method, properties, body):
                               properties=pika.BasicProperties(
                                   headers={'correlation_id': correlation_id} # Add a key/value header
                               ),
-                              body=json.dumps(data))
+                              body=body)
         connection.close()
+    processed_Xs[correlation_id] = [[] for _ in range(data['trial_n'])]
+    processed_Ys[correlation_id] = [[] for _ in range(data['trial_n'])]
 
 
 def callback_setup_pollard_rho(ch, method, properties, body):

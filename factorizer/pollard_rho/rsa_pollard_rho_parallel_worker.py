@@ -70,8 +70,7 @@ def correlation_product(xs, ys):
 
 def compute_values_callback(ch, method, properties, body):
     print("compute_values_callback")
-    print(str(body))
-    data = json.loads(str(body))
+    data = json.loads(body)
     X, Y = compute_values(data['trial_n'], data['n'], data['k'], data['a'])
     connection = pika.BlockingConnection(pika.ConnectionParameters(host=data['server_ip']))
     channel = connection.channel()

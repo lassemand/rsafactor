@@ -7,7 +7,6 @@ p, q = 2, 3
 
 def initiate_pollard_rho_parallel(trial_n, n, k, a, ips, server_ip):
     data = {'trial_n': trial_n, 'n': n, 'k': k, 'a': a, 'ips': ips, 'server_ip': server_ip}
-    json_data = json.dumps(data)
     connection = pika.BlockingConnection(pika.ConnectionParameters(host=server_ip))
     channel = connection.channel()
 
@@ -18,7 +17,7 @@ def initiate_pollard_rho_parallel(trial_n, n, k, a, ips, server_ip):
                           properties=pika.BasicProperties(
                               headers={'correlation_id': correlation_id} # Add a key/value header
                           ),
-                          body=json_data)
+                          body=json.dumps(data))
     connection.close()
 
 
