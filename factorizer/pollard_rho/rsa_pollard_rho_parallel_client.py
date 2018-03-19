@@ -48,8 +48,3 @@ def create_pollard_rho_parallel_return_queue(server_ip):
     channel.start_consuming()
     connection.close()
     return p, q
-
-
-if __name__ == "__main__":
-    initiate_pollard_rho_parallel(3, 15, 1, 1, ['localhost'], 'localhost')
-    create_pollard_rho_parallel_return_queue('localhost')

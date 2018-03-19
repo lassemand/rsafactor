@@ -1,17 +1,8 @@
-import math
-import random
-
 from interface import implements
 
-from factorizer.pollard_rho.rsa_pollard_rho_parallel_client import initiate_pollard_rho_parallel
+from factorizer.pollard_rho.rsa_pollard_rho_parallel_client import initiate_pollard_rho_parallel, \
+    create_pollard_rho_parallel_return_queue
 from factorizer.rsa_factorizer import rsa_factorizer
-from multiprocessing import Queue, Process, Semaphore
-
-
-
-
-
-
 
 
 class rsa_pollard_rho_parallel(implements(rsa_factorizer)):
@@ -24,8 +15,6 @@ class rsa_pollard_rho_parallel(implements(rsa_factorizer)):
         self.worker_ips = worker_ips
         self.server_ip = server_ip
 
-
-
     def factorize(self, a=1):
         global xs, ys
         # Step 1: Define prime K such that for some prime K p \equiv 1 \mod K'
@@ -34,4 +23,5 @@ class rsa_pollard_rho_parallel(implements(rsa_factorizer)):
         trial_n = self.n_calculator.calculate(self.n, self.m, k)
         # Step 3. On each machine of m define an initial seed
         initiate_pollard_rho_parallel(trial_n, self.n, k, a, self.worker_ips, self.server_ip)
+        create_pollard_rho_parallel_return_queue(self.server_ip)
 
