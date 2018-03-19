@@ -32,28 +32,34 @@ def correlation_product(xs, ys):
 def compute_values_callback(ch, method, properties, body):
     print("compute_values_callback")
     data = json.loads(body)
-    X, Y = compute_values(data.trial_n, data.n, data.k, data.a)
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host=data.server_ip))
+    X, Y = compute_values(data['trial_n'], data['n'], data['k'], data['a'])
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host=data['server_ip']))
     channel = connection.channel()
     data['X'] = X
     data['Y'] = Y
-    channel.basic_publish(exchange='', routing_key='pollard_rho_parallel_setup', body=json.dumps(data))
+    channel.basic_publish(exchange='', routing_key='pollard_rho_parallel_setup',
+                          properties=pika.BasicProperties(
+                              headers={'correlation_id': properties.headers['correlation_id']}
+                          ),
+                          body=json.dumps(data))
     connection.close()
 
 
 def compute_q_callback(ch, method, properties, body):
     print("compute_q_callback")
     data = json.loads(body)
-    Q = correlation_product(data.X, data.Y)
-    p = math.gcd(Q, data.n)
-    if p != 1 and p != data.n:
-        content = {}
-        content.p = p
-        content.q = int(data.n / p)
-        connection = pika.BlockingConnection(pika.ConnectionParameters(host=data.server_ip))
-        channel = connection.channel()
-        channel.basic_publish(exchange='', routing_key='pollard_rho_parallel_result', body=json.dumps(content))
-        connection.close()
+    Q = correlation_product(data['X'], data['Y']) % data['n']
+    p = math.gcd(Q, data['n'])
+    data['p'] = p
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host=data['server_ip']))
+    channel = connection.channel()
+    channel.basic_publish(exchange='',
+                          routing_key='pollard_rho_parallel_result',
+                          properties=pika.BasicProperties(
+                              headers={'correlation_id': properties.headers['correlation_id']}
+                          ),
+                          body=json.dumps(data))
+    connection.close()
 
 
 if __name__ == "__main__":
@@ -68,7 +74,7 @@ if __name__ == "__main__":
                           queue='pollard_rho_parallel_worker_setup',
                           no_ack=True)
 
-    channel.basic_consume(compute_values_callback,
+    channel.basic_consume(compute_q_callback,
                           queue='pollard_rho_parallel_worker_correlation_product',
                           no_ack=True)
 
