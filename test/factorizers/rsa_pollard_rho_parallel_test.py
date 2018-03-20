@@ -5,45 +5,45 @@ import numpy as np
 
 from factorizer.pollard_rho.k_calculator import k_calculator
 from factorizer.pollard_rho.n_calculator import n_calculator
-from factorizer.pollard_rho.rsa_pollard_rho_parallel import rsa_pollard_rho_parallel, compute_values, correlation_product
 
-from multiprocessing import Queue
+from factorizer.pollard_rho.rsa_pollard_rho_parallel_worker import correlation_product, compute_values, build_poly, \
+    polyval
+
 
 class rsa_pollard_rho_parallel_test(unittest.TestCase):
-    def test_factorizer(self):
-        sut = rsa_pollard_rho_parallel(8932919, 1, 1, basic_k_calculator(), basic_n_calculator())
-        p, q = sut.factorize()
-        if p == 3259:
-            p, q = 2741, 3259
-        return p, q
 
     def test_pollard_rho_parallel(self):
-        queue = Queue()
         xs = np.array([[4,3], [5,2]])
         ys = np.array([[7,6], [7,6]])
-        correlation_product(xs, ys, queue, 2881)
-        Q = queue.get()
+        Q = correlation_product(xs, ys)
         self.assertEqual(2880, Q)
 
 
     def test_compute_values(self):
-        queue = Queue()
         n = 10
-        compute_values(queue, 4, n, 1, 1)
-        X, Y = queue.get()
+        X, Y = compute_values(4, n, 1, 1)
         self.assertEqual(X[1], Y[0])
         self.assertEqual(X[3], Y[1])
+
+    def test_pollard_rho_parallel_simpler(self):
+        x = [4,3]
+        y = [7,6]
+        polynomial = build_poly(y)
+        Q = 1
+        for value in x:
+            Q *= polyval(polynomial, value)
+        self.assertEqual(72, Q)
+
+    def test_compute_values_with_real_example(self):
+        y = [1490270837, 202440493, 548430952]
+        x = [1921262042, 210102397, 1042596808]
+        polynomial = build_poly(y)
+        Q = 1
+        for value in x:
+            Q *= polyval(polynomial, value)
+        self.assertNotEqual(0, Q)
 
 
 if __name__ == '__main__':
     unittest.main()
 
-
-class basic_k_calculator(implements(k_calculator)):
-    def calculate(self, n):
-        return 1
-
-
-class basic_n_calculator(implements(n_calculator)):
-    def calculate(self, n, m, k):
-        return 10

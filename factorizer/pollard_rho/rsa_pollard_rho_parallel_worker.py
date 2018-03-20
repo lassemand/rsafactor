@@ -12,7 +12,7 @@ def build_poly(roots):
         return [1]
     else:
         roots.sort()
-        p = np.array([[-r, 1] for r in roots], dtype=object)
+        p = [[-r, 1] for r in roots]
         n = len(p)
         while n > 1:
             m, r = divmod(n, 2)
@@ -21,7 +21,10 @@ def build_poly(roots):
                 tmp[0] = polymul(tmp[0], p[-1])
             p = tmp
             n = m
-        return p[0][::-1] * ((-1) ** len(roots))
+        p = p[0][::-1]
+        if len(roots) & 1:
+            p = [val * (-1) for val in p]
+        return p
 
 
 def polymul(c1, c2):
@@ -66,6 +69,7 @@ def correlation_product(xs, ys):
         print("xs_i: " + str(xs[i]))
         print("ys_i" + str(ys[i]))
         polynomial = build_poly(ys[i])
+        print("polynomial: " + str(polynomial))
         for x in xs[i]:
             Q *= polyval(polynomial, x)
             print("Q: " + str(Q))
