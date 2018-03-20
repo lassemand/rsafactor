@@ -46,9 +46,13 @@ def callback_setup_pollard_rho(ch, method, properties, body):
     m = len(data['ips'])
     if len(processed_X[0]) != m:
         return
+    processed_Xs.pop(correlation_id, None)
+    processed_Ys.pop(correlation_id, None)
     print(processed_X)
     indexes = [((u * data['trial_n']) // m, (((u + 1) * data['trial_n']) // m) - 1) for u in range(m)]
+    print(indexes)
     saved_args = [(processed_X[index[0]:index[1]], processed_Y[index[0]:index[1]]) for index in indexes]
+    print(saved_args)
     for (index, ip) in enumerate(data['ips']):
         data_to_be_processed = saved_args[index]
         print(data_to_be_processed)
