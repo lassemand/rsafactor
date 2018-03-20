@@ -23,7 +23,7 @@ def generate_factorizer(bits, method, processes, worker_ips, server_ip):
         'brute_force': rsa_brute_force(pubkey.n, pubkey.e),
         'pollard_rho': rsa_pollard_rho(pubkey.n, pubkey.e),
         'brent_pollard_rho': rsa_brent_pollard_rho(pubkey.n, pubkey.e),
-        'pollard_rho_parallel': rsa_pollard_rho_parallel(pubkey.n, pubkey.e, processes, basic_k_calculator(), advanced_n_calculator(bits), worker_ips, server_ip),
+        'pollard_rho_parallel': rsa_pollard_rho_parallel(253, pubkey.e, processes, basic_k_calculator(), advanced_n_calculator(9), worker_ips, server_ip),
         'pollard_rho_parallel_independent': rsa_pollard_rho_parallel_independent(pubkey.n, pubkey.e),
         'dixon_random_square': rsa_dixon_random_squares(pubkey.n, pubkey.e, rsa_dixon_random_squares_test_congruence()),
         'dixon_random_square_parallel': rsa_dixon_random_squares_parallel(pubkey.n, pubkey.e, processes, rsa_dixon_random_squares_test_congruence()),
@@ -48,4 +48,4 @@ class advanced_n_calculator(implements(n_calculator)):
     def __init__(self, k):
         self.k = k
     def calculate(self, n, m, k):
-        return int(math.sqrt(2**(self.k/2)/m))
+        return m * int(math.sqrt(2**(self.k/2)/(m ** 2)))
