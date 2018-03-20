@@ -40,24 +40,21 @@ def callback_setup_pollard_rho(ch, method, properties, body):
     processed_Y = processed_Ys[correlation_id]
     X = data['X']
     Y = data['Y']
-    print("X: " + str(X))
-    print("Y: " + str(Y))
     for i in range(data['trial_n']):
         processed_X[i].append(X[i])
         processed_Y[i].append(Y[i])
-    print(processed_X)
-    print(processed_Xs[correlation_id])
     m = len(data['ips'])
     if len(processed_X[0]) != m:
         return
+    print(processed_X)
     indexes = [((u * data['trial_n']) // m, (((u + 1) * data['trial_n']) // m) - 1) for u in range(m)]
-    print("trial_n: " + str(data['trial_n']))
-    print("m: " + str(len(data['ips'])))
     saved_args = [(processed_X[index[0]:index[1]], processed_Y[index[0]:index[1]]) for index in indexes]
     for (index, ip) in enumerate(data['ips']):
         data_to_be_processed = saved_args[index]
+        print(data_to_be_processed)
         data['X'] = data_to_be_processed[0]
         data['Y'] = data_to_be_processed[1]
+        print(data)
         connection = pika.BlockingConnection(pika.ConnectionParameters(host=ip))
         channel = connection.channel()
         channel.basic_publish(exchange='',
