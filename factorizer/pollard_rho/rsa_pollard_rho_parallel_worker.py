@@ -66,13 +66,9 @@ def compute_values(trial_n, n, k, a):
 def correlation_product(xs, ys):
     Q = 1
     for i in range(len(xs)):
-        print("xs_i: " + str(xs[i]))
-        print("ys_i" + str(ys[i]))
         polynomial = build_poly(ys[i])
-        print("polynomial: " + str(polynomial))
         for x in xs[i]:
             Q *= polyval(polynomial, x)
-            print("Q: " + str(Q))
     return Q
 
 
@@ -97,8 +93,6 @@ def compute_values_callback(ch, method, properties, body):
 def compute_q_callback(ch, method, properties, body):
     print("compute_q_callback")
     data = json.loads(body)
-    print(data['X'])
-    print(data['Y'])
     Q = correlation_product(data['X'], data['Y'])
     p = math.gcd(Q, data['n'])
     data['p'] = p
