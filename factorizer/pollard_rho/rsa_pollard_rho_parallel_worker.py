@@ -63,9 +63,12 @@ def compute_values(trial_n, n, k, a):
 def correlation_product(xs, ys):
     Q = 1
     for i in range(len(xs)):
+        print("xs_i: " + str(xs[i]))
+        print("ys_i" + str(ys[i]))
         polynomial = build_poly(ys[i])
         for x in xs[i]:
             Q *= polyval(polynomial, x)
+            print("Q: " + str(Q))
     return Q
 
 
@@ -77,7 +80,8 @@ def compute_values_callback(ch, method, properties, body):
     channel = connection.channel()
     data['X'] = X
     data['Y'] = Y
-    print("trial_n: " + str(len(X)))
+    print(X)
+    print(Y)
     channel.basic_publish(exchange='', routing_key='pollard_rho_parallel_setup',
                           properties=pika.BasicProperties(
                               headers={'correlation_id': properties.headers['correlation_id']}
@@ -89,10 +93,10 @@ def compute_values_callback(ch, method, properties, body):
 def compute_q_callback(ch, method, properties, body):
     print("compute_q_callback")
     data = json.loads(body)
+    print(data['X'])
+    print(data['Y'])
     Q = correlation_product(data['X'], data['Y'])
-    print("Q: " + str(Q))
     p = math.gcd(Q, data['n'])
-    print("p: " + str(p))
     data['p'] = p
     connection = pika.BlockingConnection(pika.ConnectionParameters(host=data['server_ip']))
     channel = connection.channel()
@@ -117,9 +121,9 @@ if __name__ == "__main__":
                           queue='pollard_rho_parallel_worker_setup',
                           no_ack=True)
 
-    channel.basic_consume(compute_q_callback,
-                          queue='pollard_rho_parallel_worker_correlation_product',
-                          no_ack=True)
+#    channel.basic_consume(compute_q_callback,
+#                          queue='pollard_rho_parallel_worker_correlation_product',
+#                          no_ack=True)
 
     print('Waiting for messages. To exit press CTRL+C')
     channel.start_consuming()
