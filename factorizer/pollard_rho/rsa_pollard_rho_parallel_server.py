@@ -45,8 +45,6 @@ def callback_setup_pollard_rho(ch, method, properties, body):
     for i in range(data['trial_n']):
         processed_X[i].append(X[i])
         processed_Y[i].append(Y[i])
-    processed_Xs[correlation_id] = processed_X
-    processed_Ys[correlation_id] = processed_Y
     print(processed_X)
     print(processed_Xs[correlation_id])
     m = len(data['ips'])
