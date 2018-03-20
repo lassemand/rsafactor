@@ -80,8 +80,6 @@ def compute_values_callback(ch, method, properties, body):
     channel = connection.channel()
     data['X'] = X
     data['Y'] = Y
-    print(X)
-    print(Y)
     channel.basic_publish(exchange='', routing_key='pollard_rho_parallel_setup',
                           properties=pika.BasicProperties(
                               headers={'correlation_id': properties.headers['correlation_id']}
