@@ -12,7 +12,7 @@ def build_poly(roots):
         return [1]
     else:
         roots.sort()
-        p = [[-r, 1] for r in roots]
+        p = np.array([[-r, 1] for r in roots], dtype=object)
         n = len(p)
         while n > 1:
             m, r = divmod(n, 2)
@@ -28,7 +28,7 @@ def build_poly(roots):
 
 
 def polymul(c1, c2):
-    ret = np.convolve(c1, c2).tolist()
+    ret = np.convolve(c1, c2)
     return trimseq(ret)
 
 

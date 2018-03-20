@@ -41,7 +41,7 @@ class rsa_pollard_rho_parallel_test(unittest.TestCase):
         Q = 1
         for value in x:
             Q *= polyval(polynomial, value)
-        self.assertNotEqual(0, Q)
+        self.assertEqual(627268546860890928494651012960094402904568879547143191107700437527350502400000, Q)
 
 
 if __name__ == '__main__':
