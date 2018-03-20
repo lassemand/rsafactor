@@ -44,6 +44,7 @@ def callback_setup_pollard_rho(ch, method, properties, body):
         processed_X[i].append(X[i])
         processed_Y[i].append(Y[i])
     m = len(data['ips'])
+    print("m: " + str(processed_X[0]))
     if len(processed_X[0]) != m:
         return
     processed_Xs.pop(correlation_id, None)

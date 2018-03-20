@@ -10,7 +10,7 @@ from factorizer.pollard_rho.k_calculator import k_calculator
 from factorizer.pollard_rho.n_calculator import n_calculator
 from factorizer.pollard_rho.rsa_brent_pollard_rho import rsa_brent_pollard_rho
 from factorizer.pollard_rho.rsa_pollard_rho import rsa_pollard_rho
-from factorizer.pollard_rho.rsa_pollard_rho_parallel import rsa_pollard_rho_parallel
+from factorizer.pollard_rho.rsa_pollard_rho_parallel import rsa_pollard_rho_parallel, advanced_n_calculator
 from factorizer.pollard_rho.rsa_pollard_rho_parallel_independent import rsa_pollard_rho_parallel_independent
 from factorizer.quadratic_sieve.rsa_quadratic_sieve import rsa_quadratic_sieve
 from factorizer.quadratic_sieve.rsa_quadratic_sieve_parallel import rsa_quadratic_sieve_parallel
@@ -44,8 +44,3 @@ class basic_k_calculator(implements(k_calculator)):
         return 1
 
 
-class advanced_n_calculator(implements(n_calculator)):
-    def __init__(self, k):
-        self.k = k
-    def calculate(self, n, m, k):
-        return m * int(math.sqrt(2**(self.k/2)/(m ** 2)))

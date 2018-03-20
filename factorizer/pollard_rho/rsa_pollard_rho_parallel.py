@@ -1,5 +1,7 @@
+import math
 from interface import implements
 
+from factorizer.pollard_rho import n_calculator
 from factorizer.pollard_rho.rsa_pollard_rho_parallel_client import initiate_pollard_rho_parallel, \
     create_pollard_rho_parallel_return_queue
 from factorizer.rsa_factorizer import rsa_factorizer
@@ -25,3 +27,9 @@ class rsa_pollard_rho_parallel(implements(rsa_factorizer)):
         initiate_pollard_rho_parallel(trial_n, self.n, k, a, self.worker_ips, self.server_ip)
         create_pollard_rho_parallel_return_queue(self.server_ip)
 
+class advanced_n_calculator:
+    def __init__(self, k):
+        self.k = k
+    def calculate(self, n, m, k):
+        # The extra m is added to ensure that m divides n
+        return int(m * (n ** (1/4) // m ** 2))
