@@ -121,9 +121,9 @@ if __name__ == "__main__":
                           queue='pollard_rho_parallel_worker_setup',
                           no_ack=True)
 
-#    channel.basic_consume(compute_q_callback,
-#                          queue='pollard_rho_parallel_worker_correlation_product',
-#                          no_ack=True)
+    channel.basic_consume(compute_q_callback,
+                          queue='pollard_rho_parallel_worker_correlation_product',
+                          no_ack=True)
 
     print('Waiting for messages. To exit press CTRL+C')
     channel.start_consuming()
