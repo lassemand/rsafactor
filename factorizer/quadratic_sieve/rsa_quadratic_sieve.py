@@ -122,7 +122,7 @@ def find_first_polynomial(n, m, factor_base):
     return g, h, B
 
 
-def siqs_find_next_poly(n, factor_base, i, g, B):
+def find_next_poly(n, factor_base, i, g, B):
     """Compute the (i+1)-th polynomials for the Self-Initialising
     Quadratic Sieve, given that g is the i-th polynomial.
     """
@@ -255,21 +255,15 @@ def find_smooth_relations(factor_base, required_congruence_ratio, smooth_relatio
         if i_poly == 0:
             g, h, B = find_first_polynomial(n, m, factor_base)
         else:
-            g, h = siqs_find_next_poly(n, factor_base, i_poly, g, B)
+            g, h = find_next_poly(n, factor_base, i_poly, g, B)
         i_poly += 1
         if i_poly >= 2 ** (len(B) - 1):
             i_poly = 0
 
-        start_time = int(round(time.time() * 1000))
         sieve_array = sieve_factor_base(factor_base, m)
-        end_time = int(round(time.time() * 1000))
-        print("Sieve array: " + str(end_time - start_time))
-        start_time = int(round(time.time() * 1000))
         enough_relations = trial_division(
             n, sieve_array, factor_base, smooth_relations,
             g, h, m, required_relations)
-        end_time = int(round(time.time() * 1000))
-        print("Trial division: " + str(end_time - start_time))
 
 
 class rsa_quadratic_sieve(implements(rsa_factorizer)):
