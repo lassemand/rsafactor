@@ -28,7 +28,7 @@ def generate_factorizer(bits, method, processes, worker_ips, server_ip):
         'dixon_random_square': rsa_dixon_random_squares(pubkey.n, pubkey.e, rsa_dixon_random_squares_test_congruence()),
         'dixon_random_square_parallel': rsa_dixon_random_squares_parallel(pubkey.n, pubkey.e, processes, rsa_dixon_random_squares_test_congruence()),
         'quadratic_sieve': rsa_quadratic_sieve(pubkey.n, pubkey.e),
-        'quadratic_sieve_parallel': rsa_quadratic_sieve_parallel(pubkey.n, pubkey.e, processes),
+        'quadratic_sieve_parallel': rsa_quadratic_sieve_parallel(pubkey.n, pubkey.e, server_ip),
     }[method]
 
 

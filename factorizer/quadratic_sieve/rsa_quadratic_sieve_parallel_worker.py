@@ -4,8 +4,11 @@ import pika
 from math import sqrt, log2
 import json
 
+from factorizer.quadratic_sieve.factor_base_prime import factor_base_prime
 from factorizer.quadratic_sieve.rsa_quadratic_sieve import find_first_polynomial, find_next_poly, sieve_factor_base, \
     TRIAL_DIVISION_EPS, trial_divide
+
+requested_data = None
 
 
 def trial_division(n, sieve_array, factor_base, g, h, m, smooth_relations):
@@ -24,17 +27,21 @@ def trial_division(n, sieve_array, factor_base, g, h, m, smooth_relations):
 def find_smooth_relations(n, m, factor_base):
     i_poly = 0
     smooth_relations = []
-    while i_poly < 2 ** (len(B) - 1):
+    is_reset = False
+    while not is_reset:
         if i_poly == 0:
             g, h, B = find_first_polynomial(n, m, factor_base)
         else:
             g, h = find_next_poly(n, factor_base, i_poly, g, B)
         i_poly += 1
+        if i_poly >= 2 ** (len(B) - 1):
+            i_poly = 0
+            is_reset = True
 
         sieve_array = sieve_factor_base(factor_base, m)
         trial_division(
-            n, sieve_array, factor_base, smooth_relations,
-            g, h, m)
+            n, sieve_array, factor_base,
+            g, h, m, smooth_relations)
     return smooth_relations
 
 if __name__ == "__main__":
@@ -48,20 +55,28 @@ if __name__ == "__main__":
     channel = connection.channel()
 
     channel.queue_declare(queue=quadratic_sieve_queue_name)
-    channel.queue_declare(queue='quadratic_sieve_parallel_smooth_relations')
     channel.exchange_declare(exchange=quadratic_sieve_initiate_name, exchange_type='fanout')
     channel.queue_bind(exchange=quadratic_sieve_initiate_name, queue=quadratic_sieve_queue_name)
 
 
-def callback(ch, method, properties, body):
-    data = json.loads(body)
-    smooth_relations = find_smooth_relations(data['n'], data['m'], data['factor_base'])
-    channel.basic_publish(exchange='',
-                          routing_key='quadratic_sieve_parallel_smooth_relations',
-                          properties=pika.BasicProperties(
-                              headers={'correlation_id': properties.headers['correlation_id']}
-                          ),
-                          body=json.dumps(smooth_relations))
+    def callback(ch, method, properties, body):
+        global requested_data
+        channel.queue_unbind(exchange=quadratic_sieve_initiate_name, queue=quadratic_sieve_queue_name)
+        data = json.loads(body)
+        requst_type = properties.headers['request_type']
+        if requst_type == 2 and requested_data is None:
+            return
+        if requst_type == 1:
+            requested_data = {'n' : data['n'], 'm' : data['m'], 'factor_base' : [factor_base_prime(factor[0], factor[1], factor[2]) for factor in data['factor_base']]}
+        smooth_relations = find_smooth_relations(requested_data['n'], requested_data['m'], requested_data['factor_base'])
+
+        channel.queue_bind(exchange=quadratic_sieve_initiate_name, queue=quadratic_sieve_queue_name)
+        channel.basic_publish(exchange='',
+                              routing_key='quadratic_sieve_parallel_smooth_relations',
+                              properties=pika.BasicProperties(
+                                  headers={'correlation_id': properties.headers['correlation_id']}
+                              ),
+                              body=json.dumps(smooth_relations))
     channel.basic_consume(callback, queue=quadratic_sieve_queue_name, no_ack=True)
 
     print('Waiting for messages. To exit press CTRL+C')
