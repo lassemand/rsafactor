@@ -65,8 +65,10 @@ if __name__ == "__main__":
         data = json.loads(body)
         requst_type = properties.headers['request_type']
         if requst_type == 2 and requested_data is None:
+            print("I should never be here")
             return
         if requst_type == 1:
+            print("Initial")
             requested_data = {'n' : data['n'], 'm' : data['m'], 'factor_base' : [factor_base_prime(factor[0], factor[1], factor[2]) for factor in data['factor_base']]}
         smooth_relations = find_smooth_relations(requested_data['n'], requested_data['m'], requested_data['factor_base'])
 

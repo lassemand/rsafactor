@@ -49,7 +49,6 @@ def retrieve_smooth_relations(server_ip, required_relations):
             return
 
         smooth_relations.extend(json.loads(body))
-
         if required_relations <= len(smooth_relations):
             channel.stop_consuming()
         else:
