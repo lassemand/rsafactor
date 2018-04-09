@@ -14,11 +14,11 @@ from helper.cryptographic_methods import is_quadratic_residue, modular_square_ro
     is_probable_prime, sqrt_int, choose_nf_m
 from helper.primes_sieve import primes_sieve
 
-# TODO: THIS VALUE SHOULD BE DYNAMIC
 TRIAL_DIVISION_EPS = 20
 MIN_PRIME_POLYNOMIAL = 400
 MAX_PRIME_POLYNOMIAL = 4000
 SMALLEST_PRIME_TO_BE_IN_SIEVE = 20
+NUMBER_OF_RETRIES_FINDING_A = 20
 
 
 def factor_base_primes(n, nf, small_primes):
@@ -83,13 +83,13 @@ def calculate_B_values(q, a, factor_base):
     return B
 
 
-# TODO: Use gradient descent on calculating a instead of randomly choosing stuff
-def find_best_a_and_q_values(n, m, p_min_i, p_max_i, factor_base):
+def find_best_a_and_q_values(n, m, factor_base):
+    global p_min_i, p_max_i
     target = sqrt(2 * float(n)) / m
     target1 = target / ((factor_base[p_min_i].p +
                          factor_base[p_max_i].p) / 2) ** 0.5
     best_q, best_a, best_ratio = None, None, None
-    for _ in range(30):
+    for _ in range(NUMBER_OF_RETRIES_FINDING_A):
         a = 1
         q = []
 
@@ -101,10 +101,9 @@ def find_best_a_and_q_values(n, m, p_min_i, p_max_i, factor_base):
             a *= p
             q.append(p_i)
 
-        ratio = a / target
+        ratio = abs((a / target) - 1)
 
-        if (best_ratio is None or (0.9 <= ratio < best_ratio) or
-                        best_ratio < 0.9 and ratio > best_ratio):
+        if best_ratio is None or ratio < best_ratio:
             best_q = q
             best_a = a
             best_ratio = ratio
@@ -115,8 +114,7 @@ def find_first_polynomial(n, m, factor_base):
     """Compute the first of a set of polynomials for the Self-
     Initialising Quadratic Sieve.
     """
-    p_min_i, p_max_i = calculate_limits(factor_base)
-    q, a = find_best_a_and_q_values(n, m, p_min_i, p_max_i, factor_base)
+    q, a = find_best_a_and_q_values(n, m, factor_base)
     B = calculate_B_values(q, a, factor_base)
     g, h = find_polynomials_and_calculate_values(sum(B) % a, a, n, factor_base, True)
     return g, h, B
@@ -248,11 +246,15 @@ def siqs_find_more_factors_gcd(numbers):
 
 
 def find_smooth_relations(factor_base, required_congruence_ratio, smooth_relations, m, i_poly, n):
+    global p_min_i, p_max_i
     print("*** Step 1/2: Finding smooth relations ***")
     required_relations = round(len(factor_base) * required_congruence_ratio)
     enough_relations = False
+    p_min_i, p_max_i = calculate_limits(factor_base)
+    found_relations_counter = 0
     while not enough_relations:
         if i_poly == 0:
+            found_relations_counter += 1
             g, h, B = find_first_polynomial(n, m, factor_base)
         else:
             g, h = find_next_poly(n, factor_base, i_poly, g, B)
