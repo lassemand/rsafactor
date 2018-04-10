@@ -252,10 +252,8 @@ def find_smooth_relations(factor_base, required_congruence_ratio, smooth_relatio
     required_relations = round(len(factor_base) * required_congruence_ratio)
     enough_relations = False
     p_min_i, p_max_i = calculate_limits(factor_base)
-    found_relations_counter = 0
     while not enough_relations:
         if i_poly == 0:
-            found_relations_counter += 1
             g, h, B = find_first_polynomial(n, m, factor_base)
         else:
             g, h = find_next_poly(n, factor_base, i_poly, g, B)
