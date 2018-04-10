@@ -159,7 +159,8 @@ def trial_divide(a, factor_base):
     divisors_idx = []
     for i, fb in enumerate(factor_base):
         if a % fb.p == 0:
-            exp = 0
+            exp = 1
+            a //= fb.p
             while a % fb.p == 0:
                 a //= fb.p
                 exp += 1
