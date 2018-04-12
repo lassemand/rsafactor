@@ -12,21 +12,17 @@ from helper.primes_sieve import primes_sieve
 def factorize_number_from_primes(number, primes):
     factorized_number_binary_row = [0] * (len(primes))
     factorized_number_row = [0] * (len(primes))
-    list_of_factors = []
-    current_factor_value = 1
+    a = number
     for (index, prime) in enumerate(primes):
-        value = 1
-
-        while number % (prime ** value) == 0:
-            value += 1
-        exponent = value - 1
-        factorized_number_row[index] = exponent
-        if exponent != 0:
-            list_of_factors.append(number ** exponent)
-            factorized_number_binary_row[index] = exponent & 1 if number % prime == 0 else 0
-            current_factor_value = current_factor_value * (prime.item() ** exponent)
-            if current_factor_value == number:
-                return factorized_number_binary_row, factorized_number_row
+        exp = 0
+        while a % prime == 0:
+            a //= prime
+            exp += 1
+        if exp > 0:
+            factorized_number_row[index] = exp
+            factorized_number_binary_row[index] = exp % 2
+        if a == 1:
+            return factorized_number_binary_row, factorized_number_row
     return None, None
 
 

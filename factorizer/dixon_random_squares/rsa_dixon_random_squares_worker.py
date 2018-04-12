@@ -34,6 +34,7 @@ if __name__ == "__main__":
     parser.add_argument('--pad', required=True, type=int, help='integer to pad with')
     args = parser.parse_args()
     pad = args.pad
+    print(pad)
     dixon_random_squares_initiate_name = 'dixon_random_squares_parallel_initiate'
     dixon_random_squares_queue_name = dixon_random_squares_initiate_name + args.queue_name
     connection = pika.BlockingConnection(pika.ConnectionParameters(host=args.server_ip))
@@ -45,7 +46,7 @@ if __name__ == "__main__":
 
     def callback(ch, method, properties, body):
         data = json.loads(body)
-        Z, rows_in_factor, rows_in_binary_factor = build_up_congruence_values(data['c'], data['n'], math.ceil(len(data['B'])/data['m']), data['B'], pad, data['m'])
+        Z, rows_in_factor, rows_in_binary_factor = build_up_congruence_values(data['c'], data['n'], math.floor(len(data['B'])/data['m']) + 1, data['B'], pad, data['m'])
         channel.basic_publish(exchange='',
                               routing_key='dixon_random_squares_parallel_smooth_relations',
                               body=json.dumps({'Z': Z, 'rows_in_factor': rows_in_factor, 'rows_in_binary_factor': rows_in_binary_factor}))

@@ -46,13 +46,14 @@ class rsa_dixon_random_squares_client(implements(rsa_factorizer)):
             if completed_processes == self.m:
                 channel.stop_consuming()
 
-        connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
+        connection = pika.BlockingConnection(pika.ConnectionParameters(host=self.server_ip))
         channel = connection.channel()
+        channel.queue_declare(queue=queue_name)
         channel.basic_consume(smooth_relations_callback,
                               queue=queue_name,
                               no_ack=True)
         channel.start_consuming()
-        return np.array(Z), np.array(smooth_relations), np.array(smooth_binary_relations)
+        return np.array(Z, dtype=object), np.array(smooth_relations), np.array(smooth_binary_relations)
 
     def factorize(self, c=1):
         global smooth_relations, Z, completed_processes, smooth_binary_relations
