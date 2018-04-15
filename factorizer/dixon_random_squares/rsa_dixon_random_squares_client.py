@@ -17,7 +17,7 @@ def send_initiate_request(server_ip, n, m, B, c):
     queue_name = 'dixon_random_squares_parallel_initiate'
     channel.basic_publish(exchange=queue_name,
                           routing_key='',
-                          body=json.dumps({'n': n, 'm': m, 'B': B, 'c': c}))
+                          body=json.dumps({'n': n, 'm': m, 'B': B, 'c': c, 'size': 10}))
     connection.close()
 
 
@@ -41,9 +41,12 @@ class rsa_dixon_random_squares_client(implements(rsa_factorizer)):
             Z.extend(data['Z'])
             smooth_relations.extend(data['rows_in_factor'])
             smooth_binary_relations.extend(data['rows_in_binary_factor'])
-            completed_processes += 1
-            if completed_processes == self.m:
+            print(len(Z))
+            if len(Z) > len(self.B):
                 channel.stop_consuming()
+            else:
+                send_initiate_request(self.server_ip, self.n, self.m, self.B, c)
+
 
         connection = pika.BlockingConnection(pika.ConnectionParameters(host=self.server_ip))
         channel = connection.channel()

@@ -18,7 +18,7 @@ def build_up_congruence_values(c, n, size, B, pad, m):
         j = j + 1
         z = math.ceil(math.sqrt(int(j*m+pad) * n)) + c
         number = z ** 2 % n
-        factorized_binary_number_row, factorized_number_row = factorize_number_from_primes(number, np.array(B, dtype=int))
+        factorized_binary_number_row, factorized_number_row = factorize_number_from_primes(number, B)
         if factorized_number_row is not None:
             rows_in_factor.append(factorized_number_row)
             rows_in_binary_factor.append(factorized_binary_number_row)
@@ -46,7 +46,9 @@ if __name__ == "__main__":
 
     def callback(ch, method, properties, body):
         data = json.loads(body)
-        Z, rows_in_factor, rows_in_binary_factor = build_up_congruence_values(data['c'], data['n'], math.floor(len(data['B'])/data['m']) + 1, data['B'], pad, data['m'])
+        channel.queue_unbind(exchange=dixon_random_squares_initiate_name, queue=dixon_random_squares_queue_name)
+        Z, rows_in_factor, rows_in_binary_factor = build_up_congruence_values(data['c'], data['n'], data['size'], data['B'], pad, data['m'])
+        channel.queue_bind(exchange=dixon_random_squares_initiate_name, queue=dixon_random_squares_queue_name)
         channel.basic_publish(exchange='',
                               routing_key='dixon_random_squares_parallel_smooth_relations',
                               body=json.dumps({'Z': Z, 'rows_in_factor': rows_in_factor, 'rows_in_binary_factor': rows_in_binary_factor}))

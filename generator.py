@@ -26,7 +26,7 @@ def generate_factorizer(bits, method, processes, worker_ips, server_ip):
         'pollard_rho_parallel': rsa_pollard_rho_parallel(pubkey.n, pubkey.e, processes, basic_k_calculator(), advanced_n_calculator(bits), worker_ips, server_ip),
         'pollard_rho_parallel_independent': rsa_pollard_rho_parallel_independent(pubkey.n, pubkey.e),
         'dixon_random_squares': rsa_dixon_random_squares(pubkey.n, pubkey.e, rsa_dixon_random_squares_test_congruence()),
-        'dixon_random_square_parallel': rsa_dixon_random_squares_client(pubkey.n, pubkey.e, processes, server_ip, rsa_dixon_random_squares_test_congruence()),
+        'dixon_random_squares_parallel': rsa_dixon_random_squares_client(pubkey.n, pubkey.e, processes, server_ip, rsa_dixon_random_squares_test_congruence()),
         'quadratic_sieve': rsa_quadratic_sieve(pubkey.n, pubkey.e),
         'quadratic_sieve_parallel': rsa_quadratic_sieve_parallel(pubkey.n, pubkey.e, server_ip),
     }[method]
