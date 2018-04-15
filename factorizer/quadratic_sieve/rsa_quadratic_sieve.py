@@ -218,7 +218,7 @@ def siqs_find_factors(n, perfect_squares, smooth_relations):
     """
     for square_indices in perfect_squares:
         fact = factor_from_square(n, square_indices, smooth_relations)
-        if fact != 1:
+        if fact != 1 and fact != n:
             return fact, int(n / fact)
     return None, None
 

@@ -6,9 +6,8 @@ from interface import implements
 import numpy as np
 import json
 
-from factorizer.dixon_random_squares.rsa_dixon_random_squares import factor_from_reduced_matrix
+from factorizer.quadratic_sieve.matrix_operations import build_index_matrix, solve_matrix_opt
 from factorizer.rsa_factorizer import rsa_factorizer
-from helper.gaussian_elimination import reduced_row_echelon_form
 from helper.primes_sieve import primes_sieve
 
 
@@ -62,13 +61,10 @@ class rsa_dixon_random_squares_client(implements(rsa_factorizer)):
         smooth_relations = []
         smooth_binary_relations = []
         Z, all_rows_in_factor, all_rows_in_binary_factor = self.build_up_test_values_parallel(c)
-        matrix, numpivots = reduced_row_echelon_form(all_rows_in_binary_factor.transpose())
-        start_time = int(round(time.time() * 1000))
-        ones = np.array(
-            [[index for (index, bit) in enumerate(matrix[i, :]) if bit] for i in reversed(range(numpivots))])
-        p, q = factor_from_reduced_matrix(ones, self.test_congruence, Z, all_rows_in_factor, np.array(self.B, dtype=int), self.n)
-        end_time = int(round(time.time() * 1000))
-        print("Factor: " + str(end_time - start_time))
-        if p is not None and q is not None:
-            return p, q
-        return self.factorize(c + self.m)
+        M_opt, M_n, M_m = build_index_matrix(all_rows_in_binary_factor)
+        perfect_squares = solve_matrix_opt(M_opt, M_n, M_m)
+        for square_indices in perfect_squares:
+            p, q = self.test_congruence.validate(square_indices, Z, all_rows_in_factor, self.B, self.n)
+            if p is not None and q is not None:
+                return p, q
+
