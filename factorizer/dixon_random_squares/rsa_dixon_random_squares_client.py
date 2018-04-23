@@ -12,12 +12,12 @@ from helper.primes_sieve import primes_sieve
 
 
 def send_initiate_request(server_ip, n, m, B, c):
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host=server_ip))
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host=server_ip, blocked_connection_timeout=3600, socket_timeout=3600))
     channel = connection.channel()
     queue_name = 'dixon_random_squares_parallel_initiate'
     channel.basic_publish(exchange=queue_name,
                           routing_key='',
-                          body=json.dumps({'n': n, 'm': m, 'B': B, 'c': c, 'size': 10}))
+                          body=json.dumps({'n': n, 'm': m, 'B': B, 'c': c, 'size': 5}))
     connection.close()
 
 
@@ -41,7 +41,6 @@ class rsa_dixon_random_squares_client(implements(rsa_factorizer)):
             Z.extend(data['Z'])
             smooth_relations.extend(data['rows_in_factor'])
             smooth_binary_relations.extend(data['rows_in_binary_factor'])
-            print(len(Z))
             if len(Z) > len(self.B):
                 channel.stop_consuming()
             else:

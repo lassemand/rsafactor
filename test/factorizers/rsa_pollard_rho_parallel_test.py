@@ -34,6 +34,21 @@ class rsa_pollard_rho_parallel_test(unittest.TestCase):
             Q *= polyval(polynomial, value)
         self.assertEqual(72, Q)
 
+    def test_build_poly(self):
+        y = [7,6]
+        polynomial = build_poly(y)
+        self.assertEqual(1, polynomial[0])
+        self.assertEqual(-13, polynomial[1])
+        self.assertEqual(42, polynomial[2])
+
+    def test_build_poly(self):
+        y = [7,6,5]
+        polynomial = build_poly(y)
+        self.assertEqual(-1, polynomial[0])
+        self.assertEqual(18, polynomial[1])
+        self.assertEqual(-107, polynomial[2])
+        self.assertEqual(210, polynomial[3])
+
     def test_compute_values_with_real_example(self):
         y = [1490270837, 202440493, 548430952]
         x = [1921262042, 210102397, 1042596808]

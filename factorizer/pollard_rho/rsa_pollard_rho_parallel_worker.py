@@ -8,35 +8,22 @@ import pika
 
 
 def build_poly(roots):
-    if len(roots) == 0:
-        return [1]
-    else:
-        roots.sort()
-        p = np.array([[-r, 1] for r in roots], dtype=object)
-        n = len(p)
-        while n > 1:
-            m, r = divmod(n, 2)
-            tmp = [polymul(p[i], p[i+m]) for i in range(m)]
-            if r:
-                tmp[0] = polymul(tmp[0], p[-1])
-            p = tmp
-            n = m
-        p = p[0][::-1]
-        if len(roots) & 1:
-            p = [val * (-1) for val in p]
-        return p
-
-
-def polymul(c1, c2):
-    ret = np.convolve(c1, c2)
-    return trimseq(ret)
+    p = np.array([[r, -1] for r in roots], dtype=object)
+    while len(p) > 1:
+        m, r = divmod(len(p), 2)
+        tmp = [np.convolve(p[i], p[i+m]) for i in range(m)]
+        if r:
+            tmp[0] = np.convolve(tmp[0], p[-1])
+        p = tmp
+    p = p[0][::-1]
+    return p
 
 
 def trimseq(seq):
     if len(seq) == 0:
         return seq
     else:
-        for i in range(len(seq) - 1, -1, -1):
+        for i in reversed(range(len(seq))):
             if seq[i] != 0:
                 break
         return seq[:i+1]

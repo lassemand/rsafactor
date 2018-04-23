@@ -14,12 +14,12 @@ class rsa_pollard_rho(implements(rsa_factorizer)):
 
     def factorize(self, f = lambda u: u ** 2 + 1):
         x = random.randint(2, self.n - 1)
-        y = x % self.n
+        y = x
         p = 1
         while p == 1:
             x = f(x) % self.n
             y = f(f(y)) % self.n
-            p = math.gcd((x - y) % self.n, self.n)
+            p = math.gcd((x - y), self.n)
             if p == self.n:
                 return self.factorize(f)
         return p, int(self.n / p)

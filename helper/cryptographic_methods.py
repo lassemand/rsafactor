@@ -2,7 +2,8 @@
 import random
 from math import floor, log2
 
-MILLER_RABIN_ITERATIONS = 50
+MILLER_RABIN_ITERATIONS = 5
+
 
 def lowest_set_bit(a):
     b = (a & -a)
@@ -140,7 +141,7 @@ def primality_test_miller_rabin(a, iterations):
         j = 0
         z = pow_mod(b, m, a)
         while not ((j == 0 and z == 1) or z == a - 1):
-            if (j > 0 and z == 1 or j + 1 == lb):
+            if j > 0 and z == 1 or j + 1 == lb:
                 return False
             j += 1
             z = (z * z) % a
