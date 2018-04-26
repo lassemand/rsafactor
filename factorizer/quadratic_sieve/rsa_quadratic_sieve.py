@@ -1,4 +1,5 @@
 #!/usr/bin/python3 -O
+import operator
 import time
 from math import sqrt, log2, ceil
 import random
@@ -7,11 +8,11 @@ import math
 from interface import implements
 
 from factorizer.quadratic_sieve.factor_base_prime import factor_base_prime
-from factorizer.quadratic_sieve.matrix_operations import build_binary_matrix, build_index_matrix, solve_matrix_opt
+from factorizer.quadratic_sieve.matrix_operations import build__matrices, build_index_matrix, solve_matrix_opt
 from factorizer.quadratic_sieve.polynomial import polynomial
 from factorizer.rsa_factorizer import rsa_factorizer
-from helper.cryptographic_methods import is_quadratic_residue, modular_square_root, inv_mod, lowest_set_bit, \
-    is_probable_prime, sqrt_int, choose_nf_m
+from helper.cryptographic_methods import is_quadratic_residue, modular_square_root, inv_mod, lowest_set_bit, sqrt_int, \
+    choose_nf_m, primality_test_miller_rabin
 from helper.primes_sieve import primes_sieve
 
 TRIAL_DIVISION_EPS = 20
@@ -111,9 +112,6 @@ def find_best_a_and_q_values(n, m, factor_base):
 
 
 def find_first_polynomial(n, m, factor_base):
-    """Compute the first of a set of polynomials for the Self-
-    Initialising Quadratic Sieve.
-    """
     q, a = find_best_a_and_q_values(n, m, factor_base)
     B = calculate_B_values(q, a, factor_base)
     g, h = find_polynomials_and_calculate_values(sum(B) % a, a, n, factor_base, True)
@@ -121,23 +119,17 @@ def find_first_polynomial(n, m, factor_base):
 
 
 def find_next_poly(n, factor_base, i, g, B):
-    """Compute the (i+1)-th polynomials for the Self-Initialising
-    Quadratic Sieve, given that g is the i-th polynomial.
-    """
     v = lowest_set_bit(i) + 1
     z = -1 if ceil(i / (2 ** v)) & 1 else 1
     b = (g.b + 2 * z * B[v - 1]) % g.a
-    a = g.a
-    return find_polynomials_and_calculate_values(b, a, n, factor_base, False)
+    return find_polynomials_and_calculate_values(b, g.a, n, factor_base, False)
 
 
 def sieve_factor_base(factor_base, m):
-    """Perform the sieving step of the SIQS. Return the sieve array."""
     sieve_array = [0] * (2 * m + 1)
     for fb in factor_base:
         if fb.soln1 is None:
             continue
-        # TODO: Make this value dynamic
         if fb.p > SMALLEST_PRIME_TO_BE_IN_SIEVE:
             i_start_1 = ((m + fb.soln1) // fb.p)
             a_start_1 = fb.soln1 - i_start_1 * fb.p
@@ -166,24 +158,57 @@ def trial_divide(a, factor_base):
                 exp += 1
             divisors_idx.append((i, exp))
         if a == 1:
-            return divisors_idx
-    return None
+            break;
+    return divisors_idx, a
+
+
+def subtract_partial_relation_exponents(partial_relation_1, partial_relation_2):
+    counter_1 = 0
+    counter_2 = 0
+    new_relation = []
+    while counter_1 != len(partial_relation_1) and counter_2 != len(partial_relation_2):
+        if partial_relation_1[counter_1][0] == partial_relation_2[counter_2][0]:
+            result = partial_relation_1[counter_1][1] - partial_relation_2[counter_2][1]
+            saved_result = (partial_relation_1[counter_1][0], result)
+            counter_1 += 1
+            counter_2 += 1
+            if result == 0:
+                continue
+        elif counter_1 == len(partial_relation_1) or partial_relation_1[counter_1][0] > partial_relation_2[counter_2][0]:
+            saved_result = (partial_relation_2[counter_2][0], -partial_relation_2[counter_2][1])
+            counter_2 += 1
+        elif counter_2 == len(partial_relation_2) or partial_relation_2[counter_2][0] > partial_relation_1[counter_1][0]:
+            saved_result = (partial_relation_1[counter_1][0], partial_relation_1[counter_1][1])
+            counter_1 += 1
+        new_relation.append(saved_result)
+    return new_relation
+
+
+def partial_relation_to_full_relation(partial_relation, inverted_partial_relation, n):
+    u = inverted_partial_relation[0] * partial_relation[0] % n
+    v = (u ** 2) % n
+    return u, v, subtract_partial_relation_exponents(partial_relation[1], inverted_partial_relation[1])
 
 
 def trial_division(n, sieve_array, factor_base, smooth_relations, g, h, m,
-                   req_relations):
+                   req_relations, partial_relations, partial_relations_limit):
     limit = log2(m * sqrt(n)) - TRIAL_DIVISION_EPS
     for (i, sa) in enumerate(sieve_array):
         if sa >= limit:
             x = i - m
-            gx = g.eval(x)
-            divisors_idx = trial_divide(gx, factor_base)
-            if divisors_idx is not None:
+            v = g.eval(x) % n
+            divisors_idx, a = trial_divide(v, factor_base)
+            if a == 1:
                 u = h.eval(x)
-                v = gx
                 smooth_relations.append((u, v, divisors_idx))
-                if len(smooth_relations) >= req_relations:
-                    return True
+            elif a < partial_relations_limit and primality_test_miller_rabin(a):
+                if a not in partial_relations:
+                    partial_relations[a] = (inv_mod((h.eval(x) % n), n), divisors_idx)
+                else:
+                    smooth_relation = partial_relation_to_full_relation((h.eval(x), divisors_idx), partial_relations[a], n)
+                    #smooth_relations.append(smooth_relation)
+            if len(smooth_relations) >= req_relations:
+                return True
     return False
 
 
@@ -211,11 +236,6 @@ def factor_from_square(n, square_indices, smooth_relations):
 
 
 def siqs_find_factors(n, perfect_squares, smooth_relations):
-    """Perform the last step of the Self-Initialising Quadratic Field.
-    Given the solutions returned by siqs_solve_matrix_opt, attempt to
-    identify a number of (not necessarily prime) factors of n, and
-    return them.
-    """
     for square_indices in perfect_squares:
         fact = factor_from_square(n, square_indices, smooth_relations)
         if fact != 1 and fact != n:
@@ -224,8 +244,8 @@ def siqs_find_factors(n, perfect_squares, smooth_relations):
 
 
 def linear_algebra(smooth_relations, factor_base, n):
-    M = build_binary_matrix(factor_base, smooth_relations)
-    M_opt, M_n, M_m = build_index_matrix(M)
+    binary_exponent_matrix, exponent_matrix = build__matrices(factor_base, smooth_relations)
+    M_opt, M_n, M_m = build_index_matrix(binary_exponent_matrix)
     perfect_squares = solve_matrix_opt(M_opt, M_n, M_m)
     return siqs_find_factors(n, perfect_squares, smooth_relations)
 
@@ -246,11 +266,12 @@ def siqs_find_more_factors_gcd(numbers):
     return res
 
 
-def find_smooth_relations(factor_base, required_congruence_ratio, smooth_relations, m, i_poly, n):
+def find_smooth_relations(factor_base, required_congruence_ratio, smooth_relations, m, i_poly, n, partial_relation_limit):
     global p_min_i, p_max_i
     print("*** Step 1/2: Finding smooth relations ***")
     required_relations = round(len(factor_base) * required_congruence_ratio)
     enough_relations = False
+    partial_relations = dict()
     p_min_i, p_max_i = calculate_limits(factor_base)
     while not enough_relations:
         if i_poly == 0:
@@ -264,7 +285,7 @@ def find_smooth_relations(factor_base, required_congruence_ratio, smooth_relatio
         sieve_array = sieve_factor_base(factor_base, m)
         enough_relations = trial_division(
             n, sieve_array, factor_base, smooth_relations,
-            g, h, m, required_relations)
+            g, h, m, required_relations, partial_relations, partial_relation_limit)
 
 
 class rsa_quadratic_sieve(implements(rsa_factorizer)):
@@ -283,14 +304,9 @@ class rsa_quadratic_sieve(implements(rsa_factorizer)):
         smooth_relations = []
         i_poly = 0
         while not success:
-            start_time = int(round(time.time() * 1000))
-            find_smooth_relations(factor_base, required_congruence_ratio, smooth_relations, m, i_poly, self.n)
-            end_time = int(round(time.time() * 1000))
-            print("Smooth_relations: " + str(end_time - start_time))
-            start_time = int(round(time.time() * 1000))
+            find_smooth_relations(factor_base, required_congruence_ratio, smooth_relations,
+                                  m, i_poly, self.n, factor_base[-1].p ** 2)
             p, q = linear_algebra(smooth_relations, factor_base, self.n)
-            end_time = int(round(time.time() * 1000))
-            print("Linear Algebra: " + str(end_time - start_time))
             if p is None or q is None:
                 print("Failed to find a solution. Finding more relations...")
                 required_congruence_ratio += 0.05

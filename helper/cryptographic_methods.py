@@ -119,19 +119,7 @@ def eea(a, b):
     return (x[1] - b // a * x[0], x[0], x[2])
 
 
-def is_probable_prime(a):
-    """Perform the Miller-Rabin primality test to determine whether the
-    given number a is a prime. Return True if the number is a prime
-    with very high probability, and False if it is definitely composite.
-    """
-    if a == 2:
-        return True
-    if a == 1 or a % 2 == 0:
-        return False
-    return primality_test_miller_rabin(a, MILLER_RABIN_ITERATIONS)
-
-
-def primality_test_miller_rabin(a, iterations):
+def primality_test_miller_rabin(a, iterations=MILLER_RABIN_ITERATIONS):
     m = a - 1
     lb = lowest_set_bit(m)
     m >>= lb

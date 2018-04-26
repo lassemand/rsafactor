@@ -1,16 +1,21 @@
 from helper.cryptographic_methods import lowest_set_bit
 
 
-def build_binary_matrix(factor_base, smooth_relations):
+def build__matrices(factor_base, smooth_relations):
     """Build the matrix for the linear algebra step of the Quadratic Sieve."""
     fb = len(factor_base)
-    M = []
+    factorized_binary_number_matrix = []
+    factorized_number_matrix = []
+
     for sr in smooth_relations:
-        mi = [0] * fb
+        factorized_number_binary_row = [0] * fb
+        factorized_number_row = [0] * fb
         for j, exp in sr[2]:
-            mi[j] = exp % 2
-        M.append(mi)
-    return M
+            factorized_number_row = exp
+            factorized_number_binary_row[j] = exp % 2
+        factorized_binary_number_matrix.append(factorized_number_binary_row)
+        factorized_number_matrix.append(factorized_number_row)
+    return factorized_binary_number_matrix, factorized_number_matrix
 
 
 def build_index_matrix(M):
