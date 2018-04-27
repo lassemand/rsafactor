@@ -24,13 +24,17 @@ class TestQuadraticSieve(unittest.TestCase):
         self.assertEqual([2, 1, 7, 6], result[0])
 
     def test_convert_partial_relation_to_full_relation(self):
-        partial_relation_exponent_1 = [(0, 1), (2, 1), (4, 2)]
-        partial_relation_exponent_2 = [(0, 1), (3, 1), (4, 1)]
+        partial_relation_exponent_1 = [(0, 1), (11, 1), (23, 1), (38, 1), (43, 1), (44, 1), (49, 1)]
+        partial_relation_exponent_2= [(0, 1), (2, 1), (9, 1), (11, 1), (29, 1), (38, 1), (43, 1), (45, 1)]
         result = subtract_partial_relation_exponents(partial_relation_exponent_1, partial_relation_exponent_2)
-        self.assertEqual(3, len(result))
-        self.assertEqual((2, 1), result[0])
-        self.assertEqual((3, -1), result[1])
-        self.assertEqual((4, 1), result[2])
+        self.assertEqual(7, len(result))
+        self.assertEqual((2, -1), result[0])
+        self.assertEqual((9, -1), result[1])
+        self.assertEqual((23, 1), result[2])
+        self.assertEqual((29, -1), result[3])
+        self.assertEqual((44, 1), result[4])
+        self.assertEqual((45, -1), result[5])
+        self.assertEqual((49, 1), result[6])
 
     def test_partial_relation_to_full_relation(self):
         partial_relation = (4026339831, [(2, 1), (23, 1), (29, 1), (137, 1), (229, 1), (233, 1), (401, 1), (521, 1)])
