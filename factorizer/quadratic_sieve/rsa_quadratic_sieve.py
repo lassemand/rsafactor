@@ -1,6 +1,4 @@
 #!/usr/bin/python3 -O
-import operator
-import time
 from math import sqrt, log2, ceil
 import random
 
@@ -20,7 +18,6 @@ MIN_PRIME_POLYNOMIAL = 400
 MAX_PRIME_POLYNOMIAL = 4000
 SMALLEST_PRIME_TO_BE_IN_SIEVE = 20
 NUMBER_OF_RETRIES_FINDING_A = 20
-TEST_COUNTER = 0
 
 
 def factor_base_primes(n, nf, small_primes):
@@ -195,7 +192,6 @@ def partial_relation_to_full_relation(partial_relation, inverted_partial_relatio
 
 def trial_division(n, sieve_array, factor_base, smooth_relations, g, h, m,
                    req_relations, partial_relations, partial_relations_limit):
-    global TEST_COUNTER
     limit = log2(m * sqrt(n)) - TRIAL_DIVISION_EPS
     for (i, sa) in enumerate(sieve_array):
         if sa >= limit:
@@ -211,7 +207,6 @@ def trial_division(n, sieve_array, factor_base, smooth_relations, g, h, m,
                 else:
                     smooth_relation = partial_relation_to_full_relation((h.eval(x), divisors_idx), partial_relations[a], n)
                     if smooth_relation is not None:
-                        TEST_COUNTER += 1
                         smooth_relations.append(smooth_relation)
             if len(smooth_relations) >= req_relations:
                 return True
@@ -286,13 +281,12 @@ def siqs_find_more_factors_gcd(numbers):
 
 
 def find_smooth_relations(factor_base, required_congruence_ratio, smooth_relations, m, i_poly, n, partial_relation_limit):
-    global p_min_i, p_max_i, TEST_COUNTER
+    global p_min_i, p_max_i
     print("*** Step 1/2: Finding smooth relations ***")
     required_relations = round(len(factor_base) * required_congruence_ratio)
     enough_relations = False
     partial_relations = dict()
     p_min_i, p_max_i = calculate_limits(factor_base)
-    TEST_COUNTER = 0
     while not enough_relations:
         if i_poly == 0:
             g, h, B = find_first_polynomial(n, m, factor_base)
@@ -306,7 +300,6 @@ def find_smooth_relations(factor_base, required_congruence_ratio, smooth_relatio
         enough_relations = trial_division(
             n, sieve_array, factor_base, smooth_relations,
             g, h, m, required_relations, partial_relations, partial_relation_limit)
-    print(TEST_COUNTER)
 
 
 class rsa_quadratic_sieve(implements(rsa_factorizer)):
