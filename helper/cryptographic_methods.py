@@ -195,4 +195,4 @@ def choose_nf_m(d):
         return 4000, 350000
     if d <= 66:
         return 6000, 500000
-    return 100000, 65536 * 9
+    return 100000, 750000
