@@ -17,7 +17,7 @@ from factorizer.quadratic_sieve.rsa_quadratic_sieve_parallel import rsa_quadrati
 from factorizer.rsa_brute_force import rsa_brute_force
 
 
-def generate_factorizer(bits, method, processes, worker_ips, server_ip):
+def generate_factorizer(bits, method, processes, worker_ips, server_ip, quadratic_sieve_tactic):
     (pubkey, privkey) = rsa.newkeys(bits)
     return {
         'brute_force': rsa_brute_force(pubkey.n, pubkey.e),
@@ -27,15 +27,15 @@ def generate_factorizer(bits, method, processes, worker_ips, server_ip):
         'pollard_rho_parallel_independent': rsa_pollard_rho_parallel_independent(pubkey.n, pubkey.e),
         'dixon_random_squares': rsa_dixon_random_squares(pubkey.n, pubkey.e, rsa_dixon_random_squares_test_congruence()),
         'dixon_random_squares_parallel': rsa_dixon_random_squares_client(pubkey.n, pubkey.e, processes, server_ip, rsa_dixon_random_squares_test_congruence()),
-        'quadratic_sieve': rsa_quadratic_sieve(pubkey.n, pubkey.e),
+        'quadratic_sieve': rsa_quadratic_sieve(pubkey.n, pubkey.e, quadratic_sieve_tactic),
         'quadratic_sieve_parallel': rsa_quadratic_sieve_parallel(pubkey.n, pubkey.e, server_ip),
     }[method]
 
 
-def generate_factorizers_dict(bits_list, method, processes, worker_ips, server_ip):
+def generate_factorizers_dict(bits_list, method, processes, worker_ips, server_ip, quadratic_sieve_tactic):
     bits_dict = {}
     for (index, item) in enumerate(bits_list):
-        bits_dict[item] = generate_factorizer(item, method, processes, worker_ips, server_ip)
+        bits_dict[item] = generate_factorizer(item, method, processes, worker_ips, server_ip, quadratic_sieve_tactic)
     return bits_dict
 
 
