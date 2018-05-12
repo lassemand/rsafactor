@@ -13,6 +13,8 @@ if __name__ == "__main__":
     parser.add_argument('--server_ip', help='server_ip of parallel implementation')
     parser.add_argument('--worker_ips', nargs='*', help='worker_ip of parallel implementation')
     parser.add_argument('--quadratic_sieve_tactic', type=int, help='type of polynomial builder to use')
+    parser.add_argument('--database_name', help='type of polynomial builder to use')
+
     args = parser.parse_args()
 
     if args.processes is None:
@@ -23,8 +25,11 @@ if __name__ == "__main__":
 
     if args.worker_ips is None:
         args.worker_ips = ['localhost']
+    if args.database_name is None:
+        args.database_name = args.method
+
     persistance = sqlite_persistance()
     for _ in range(args.rounds):
         factorizer_dict = generate_factorizers_dict(args.bits, args.method, args.processes, args.worker_ips, args.server_ip, args.quadratic_sieve_tactic)
         result = average_of_factorizers(factorizer_dict)
-        persistance.save_statistics(result, args.method)
+        persistance.save_statistics(result, args.database_name)

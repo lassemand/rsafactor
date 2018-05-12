@@ -8,7 +8,6 @@ from factorizer.quadratic_sieve.factor_base_prime import factor_base_prime
 from factorizer.quadratic_sieve.matrix_operations import build_matrices, build_index_matrix, solve_matrix_opt
 from factorizer.quadratic_sieve.rsa_quadratic_sieve_B_from_fixed import rsa_quadratic_sieve_B_from_fixed
 from factorizer.quadratic_sieve.rsa_quadratic_sieve_B_from_variable import rsa_quadratic_sieve_B_from_variable
-from factorizer.quadratic_sieve.rsa_quadratic_sieve_helper import calculate_limits
 from factorizer.quadratic_sieve.rsa_quadratic_sieve_smooth_relations import rsa_quadratic_sieve_smooth_relations
 from factorizer.rsa_factorizer import rsa_factorizer
 from helper.cryptographic_methods import is_quadratic_residue, modular_square_root, inv_mod, sqrt_int, \
@@ -103,17 +102,15 @@ class rsa_quadratic_sieve(implements(rsa_factorizer)):
         dig = len(str(self.n))
         nf, m = choose_nf_m(dig)
         factor_base = factor_base_primes(self.n, nf, small_primes)
-        required_congruence_ratio = 1.05
         success = False
         smooth_relations = []
         i_poly = 0
-        p_min_i, p_max_i = calculate_limits(factor_base)
         if self.polynomial_type == 1:
-            required_relations = round(len(factor_base) * required_congruence_ratio)
-            B_builder = rsa_quadratic_sieve_B_from_variable(self.n, m, factor_base, p_min_i, p_max_i)
+            required_relations = round(len(factor_base) * 1.05)
+            B_builder = rsa_quadratic_sieve_B_from_variable(self.n, m, factor_base)
         if self.polynomial_type == 2:
             required_relations = len(factor_base)+1
-            B_builder = rsa_quadratic_sieve_B_from_fixed(self.n, m, factor_base, p_min_i, p_max_i)
+            B_builder = rsa_quadratic_sieve_B_from_fixed(self.n, m, factor_base)
         smooth_relations_finder = rsa_quadratic_sieve_smooth_relations(required_relations, B_builder)
         while not success:
             smooth_relations_finder.find(factor_base, smooth_relations, m, i_poly, self.n, factor_base[-1].p ** 2)

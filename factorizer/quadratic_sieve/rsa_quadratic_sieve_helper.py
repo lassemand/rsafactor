@@ -4,7 +4,7 @@ MIN_PRIME_POLYNOMIAL = 400
 MAX_PRIME_POLYNOMIAL = 4000
 
 
-def calculate_limits(factor_base):
+def calculate_limits_variable(factor_base):
     p_min_i = None
     p_max_i = None
     for i, fb in enumerate(factor_base):
