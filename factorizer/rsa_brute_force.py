@@ -9,7 +9,7 @@ class rsa_brute_force(implements(rsa_factorizer)):
         self.e = e
 
     def factorize(self):
-        counter = 5
+        counter = 3
         while True:
             if self.n % counter == 0:
                 return counter, int(self.n / counter)

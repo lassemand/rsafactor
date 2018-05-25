@@ -68,8 +68,11 @@ def solve_matrix_opt(M_opt, n, m):
     for i in range(n):
         if not row_is_marked[i]:
             perfect_sq_indices = [i]
+            c = 0
             for j in range(m):
                 if (M_opt[j] >> i) & 1:  # test M[i][j] == 1
+                    c += 1
                     perfect_sq_indices.append(pivots[j])
             perf_squares.append(perfect_sq_indices)
+            print(c)
     return perf_squares

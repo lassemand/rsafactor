@@ -1,8 +1,8 @@
 import unittest
 
 from factorizer.quadratic_sieve.matrix_operations import build_index_matrix, solve_matrix_opt
-from factorizer.quadratic_sieve.rsa_quadratic_sieve import partial_relation_to_full_relation, \
-    subtract_partial_relation_exponents
+from factorizer.quadratic_sieve.rsa_quadratic_sieve_smooth_relations import subtract_partial_relation_exponents, \
+    partial_relation_to_full_relation
 from helper.cryptographic_methods import sqrt_int, modular_square_root
 
 
@@ -45,6 +45,12 @@ class TestQuadraticSieve(unittest.TestCase):
         self.assertEqual(11, len(exponents))
         self.assertEqual((3, -1), exponents[0])
         self.assertEqual((23, 1), exponents[2])
+
+    def test_solve_matrix_opt(self):
+        M = [[1,0,1],[0,1,0],[1,1,0],[0,1,0],[1,1,1],[0,0,1]]
+        M_opt, M_n, M_m = build_index_matrix(M)
+        result = solve_matrix_opt(M_opt, M_n, M_m)
+        self.assertEqual(3, len(result))
 
 if __name__ == '__main__':
     unittest.main()
