@@ -74,5 +74,4 @@ def solve_matrix_opt(M_opt, n, m):
                     c += 1
                     perfect_sq_indices.append(pivots[j])
             perf_squares.append(perfect_sq_indices)
-            print(c)
     return perf_squares
