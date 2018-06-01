@@ -3,28 +3,26 @@ import json
 
 import math
 import pika
-import numpy as np
 
 from factorizer.dixon_random_squares.rsa_dixon_random_squares import factorize_number_from_primes
 
+j = 0
+current_uuid = None
+
 
 def build_up_congruence_values(c, n, size, B, pad, m):
-    Z = []
-    rows_in_factor = []
-    rows_in_binary_factor = []
-    j = 0
-    i = 0
-    while i < size:
+    global j
+    smooth_relations = []
+    binary_matrix = []
+    while len(smooth_relations) < size:
         j = j + 1
-        z = math.ceil(math.sqrt(int(j*m+pad) * n)) + c
-        number = z ** 2 % n
-        factorized_binary_number_row, factorized_number_row = factorize_number_from_primes(number, B)
-        if factorized_number_row is not None:
-            rows_in_factor.append(factorized_number_row)
-            rows_in_binary_factor.append(factorized_binary_number_row)
-            Z.append(z)
-            i = i + 1
-    return Z, rows_in_factor, rows_in_binary_factor
+        Z = math.ceil(math.sqrt((j*m + pad) * n)) + c
+        Z_squared = int(Z ** 2 % n)
+        factorized_binary_number_row = factorize_number_from_primes(Z_squared, B)
+        if factorized_binary_number_row is not None:
+            smooth_relations.append((Z, Z_squared))
+            binary_matrix.append(factorized_binary_number_row)
+    return smooth_relations, binary_matrix
 
 
 if __name__ == "__main__":
@@ -34,7 +32,6 @@ if __name__ == "__main__":
     parser.add_argument('--pad', required=True, type=int, help='integer to pad with')
     args = parser.parse_args()
     pad = args.pad
-    print(pad)
     dixon_random_squares_initiate_name = 'dixon_random_squares_parallel_initiate'
     dixon_random_squares_queue_name = dixon_random_squares_initiate_name + args.queue_name
     connection = pika.BlockingConnection(pika.ConnectionParameters(host=args.server_ip))
@@ -45,13 +42,19 @@ if __name__ == "__main__":
 
 
     def callback(ch, method, properties, body):
+        global j, current_uuid
+        corr_id = properties.headers['correlation_id']
+        if current_uuid is None or current_uuid != corr_id:
+            print("Reset")
+            j = 0
+            current_uuid = corr_id
         data = json.loads(body)
         channel.queue_unbind(exchange=dixon_random_squares_initiate_name, queue=dixon_random_squares_queue_name)
-        Z, rows_in_factor, rows_in_binary_factor = build_up_congruence_values(data['c'], data['n'], data['size'], data['B'], pad, data['m'])
+        smooth_relations, binary_matrix = build_up_congruence_values(data['c'], data['n'], data['size'], data['B'], pad, data['m'])
         channel.queue_bind(exchange=dixon_random_squares_initiate_name, queue=dixon_random_squares_queue_name)
         channel.basic_publish(exchange='',
                               routing_key='dixon_random_squares_parallel_smooth_relations',
-                              body=json.dumps({'Z': Z, 'rows_in_factor': rows_in_factor, 'rows_in_binary_factor': rows_in_binary_factor}))
+                              body=json.dumps({'smooth_relations': smooth_relations, 'binary_matrix': binary_matrix}))
     channel.basic_consume(callback, queue=dixon_random_squares_queue_name, no_ack=True)
 
     print('Waiting for messages. To exit press CTRL+C')

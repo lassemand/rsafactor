@@ -6,7 +6,7 @@ import numpy as np
 from factorizer.pollard_rho.k_calculator import k_calculator
 from factorizer.pollard_rho.n_calculator import n_calculator
 
-from factorizer.pollard_rho.rsa_pollard_rho_parallel_worker import correlation_product, compute_values, build_poly, \
+from factorizer.pollard_rho.rsa_pollard_rho_parallel_worker import correlation_product, compute_values_and_send_to_ip, build_poly, \
     polyval
 
 
@@ -21,7 +21,7 @@ class rsa_pollard_rho_parallel_test(unittest.TestCase):
 
     def test_compute_values(self):
         n = 10
-        X, Y = compute_values(4, n, 1, 1)
+        X, Y = compute_values_and_send_to_ip(4, n, 1, 1)
         self.assertEqual(X[1], Y[0])
         self.assertEqual(X[3], Y[1])
 

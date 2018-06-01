@@ -36,9 +36,9 @@ def factor_from_square(n, square_indices, smooth_relations):
 class rsa_dixon_random_squares(implements(rsa_factorizer)):
     def __init__(self, n, e, test_congruence):
         self.test_congruence = test_congruence
-        self.n = 14137
+        self.n = n
         self.e = e
-        k = 8 #int(math.exp(0.4 * math.sqrt(math.log1p(self.n) * math.log1p(math.log1p(self.n)))))
+        k = int(math.exp(0.4 * math.sqrt(math.log1p(self.n) * math.log1p(math.log1p(self.n)))))
         self.B = primes_sieve(k)
 
     def find_smooth_relations(self, c, stop_factor, j, smooth_relations, binary_matrix):
