@@ -1,27 +1,12 @@
 import math
 from interface import implements
 
-from factorizer.quadratic_sieve.rsa_quadratic_sieve import linear_algebra
+from factorizer.quadratic_sieve.rsa_quadratic_sieve import linear_algebra, factor_base_primes
 from factorizer.quadratic_sieve.rsa_quadratic_sieve_parallel_client import initiate_quadratic_sieve_parallel, \
     retrieve_smooth_relations
 from factorizer.rsa_factorizer import rsa_factorizer
 from helper.cryptographic_methods import choose_nf_m, is_quadratic_residue, modular_square_root
 from helper.primes_sieve import primes_sieve
-
-
-def factor_base_primes(n, nf, small_primes):
-    """Compute and return nf factor base primes suitable for a Quadratic
-    Sieve on the number n.
-    """
-    factor_base = []
-    for p in small_primes:
-        if is_quadratic_residue(n, p):
-            t = modular_square_root(n % p, p)
-            lp = round(math.log2(p))
-            factor_base.append((p, t, lp))
-            if len(factor_base) >= nf:
-                break
-    return factor_base
 
 
 class rsa_quadratic_sieve_parallel(implements(rsa_factorizer)):

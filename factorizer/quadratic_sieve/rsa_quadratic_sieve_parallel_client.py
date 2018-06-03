@@ -9,7 +9,7 @@ active_correlation_id = None
 
 def initiate_quadratic_sieve_parallel(server_ip, n, m, factor_base):
     global active_correlation_id
-    data = {'n': n, 'm': m, 'factor_base': factor_base}
+    data = {'n': n, 'm': m, 'factor_base': [(factor.p, factor.tmem, factor.lp) for factor in factor_base]}
     connection = pika.BlockingConnection(pika.ConnectionParameters(host=server_ip))
     channel = connection.channel()
     active_correlation_id = str(uuid.uuid1())
@@ -47,7 +47,7 @@ def retrieve_smooth_relations(server_ip, required_relations):
         correlation_id = properties.headers['correlation_id']
         if active_correlation_id != correlation_id:
             return
-
+        print(len(smooth_relations))
         smooth_relations.extend(json.loads(body))
         if required_relations <= len(smooth_relations):
             channel.stop_consuming()
@@ -59,6 +59,3 @@ def retrieve_smooth_relations(server_ip, required_relations):
                           no_ack=True)
     channel.start_consuming()
     return smooth_relations
-
-if __name__ == "__main__":
-    retrieve_smooth_relations('localhost', 100)

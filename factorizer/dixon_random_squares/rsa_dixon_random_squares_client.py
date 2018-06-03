@@ -22,7 +22,7 @@ def send_initiate_request(server_ip, n, m, B, c):
                           properties=pika.BasicProperties(
                               headers={'correlation_id': correlation_id}
                           ),
-                          body=json.dumps({'n': n, 'm': m, 'B': B, 'c': c, 'size': 10}))
+                          body=json.dumps({'n': n, 'm': m, 'B': B, 'c': c, 'size': 7}))
     connection.close()
 
 
@@ -67,10 +67,10 @@ class rsa_dixon_random_squares_client(implements(rsa_factorizer)):
         self.build_up_test_values_parallel(c)
         M_opt, M_n, M_m = build_index_matrix(binary_matrix)
         perfect_squares = solve_matrix_opt(M_opt, M_n, M_m)
-        print("Done")
         for square_indices in perfect_squares:
             p = factor_from_square(self.n, square_indices, smooth_relations)
             if p != 1 and p != self.n:
                 break
+        print("p:" + str(p))
         return p, int(self.n / p)
 

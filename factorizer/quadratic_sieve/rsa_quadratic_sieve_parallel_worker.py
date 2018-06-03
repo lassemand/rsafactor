@@ -5,8 +5,9 @@ from math import sqrt, log2
 import json
 
 from factorizer.quadratic_sieve.factor_base_prime import factor_base_prime
-from factorizer.quadratic_sieve.rsa_quadratic_sieve import find_first_polynomial, find_next_poly, sieve_factor_base, \
-    TRIAL_DIVISION_EPS, trial_divide
+from factorizer.quadratic_sieve.rsa_quadratic_sieve_B_from_variable import rsa_quadratic_sieve_B_from_variable
+from factorizer.quadratic_sieve.rsa_quadratic_sieve_smooth_relations import TRIAL_DIVISION_EPS, trial_divide, \
+    find_next_poly, sieve_factor_base
 
 requested_data = None
 
@@ -17,8 +18,8 @@ def trial_division(n, sieve_array, factor_base, g, h, m, smooth_relations):
         if sa >= limit:
             x = i - m
             gx = g.eval(x)
-            divisors_idx = trial_divide(gx, factor_base)
-            if divisors_idx is not None:
+            divisors_idx, a = trial_divide(gx, factor_base)
+            if a == 1:
                 u = h.eval(x)
                 v = gx
                 smooth_relations.append((u, v, divisors_idx))
@@ -30,7 +31,7 @@ def find_smooth_relations(n, m, factor_base):
     is_reset = False
     while not is_reset:
         if i_poly == 0:
-            g, h, B = find_first_polynomial(n, m, factor_base)
+            g, h, B = rsa_quadratic_sieve_B_from_variable(n, m, factor_base).build()
         else:
             g, h = find_next_poly(n, factor_base, i_poly, g, B)
         i_poly += 1
